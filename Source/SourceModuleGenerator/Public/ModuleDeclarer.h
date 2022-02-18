@@ -4,7 +4,7 @@
 
 #include "CoreMinimal.h"
 
-struct FModuleDeclarer
+struct ModuleDeclarer
 {
 	FString CopyrightMessage;
 
