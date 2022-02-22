@@ -4,14 +4,6 @@
 
 #include "CoreMinimal.h"
 
-// Information for creating new module.
-struct FModuleDeclarer
-{
-	FString CopyrightMessage;
-
-	FString ModuleName;
-};
-
 enum class EModuleImplementType : uint8
 {
 	// Regular module implement type.
@@ -20,3 +12,14 @@ enum class EModuleImplementType : uint8
 	// Module that including gameplay code.
 	GameModule,
 };
+
+// Information for creating new module.
+struct FModuleDeclarer
+{
+	FString CopyrightMessage;
+
+	FString ModuleName;
+
+	EModuleImplementType ModuleImplementType = EModuleImplementType::NormalModule;
+};
+
