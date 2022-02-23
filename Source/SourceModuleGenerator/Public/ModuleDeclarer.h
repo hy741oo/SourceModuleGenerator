@@ -21,5 +21,11 @@ struct FModuleDeclarer
 	FString ModuleName;
 
 	EModuleImplementType ModuleImplementType = EModuleImplementType::NormalModule;
+
+	// Path points to public folder.
+	FString ModulePublicPath;
+
+	// Path points to private folder.
+	FString ModulePrivatePath;
 };
 
