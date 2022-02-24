@@ -2,6 +2,6 @@
 
 #pragma once
 
-#include "ModuleDeclarer.h"
+struct FModuleDeclarer;
 
-bool CreateModuleFile(const FModuleDeclarer& InModuleDeclarer);
+SOURCEMODULEGENERATOR_API bool CreateModuleFiles(const FModuleDeclarer& InModuleDeclarer);

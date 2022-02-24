@@ -18,3 +18,5 @@ void FSourceModuleGeneratorModule::ShutdownModule()
 #undef LOCTEXT_NAMESPACE
 	
 IMPLEMENT_MODULE(FSourceModuleGeneratorModule, SourceModuleGenerator)
+
+DEFINE_LOG_CATEGORY(LogSourceModuleGenerator)
