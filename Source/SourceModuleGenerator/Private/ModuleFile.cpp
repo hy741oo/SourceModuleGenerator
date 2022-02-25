@@ -32,7 +32,7 @@ bool CreateModuleFiles(const FModuleDeclarer& InModuleDeclarer)
 	ModuleContents.Empty();
 	ModuleContents.Add(TEXT("// ") + InModuleDeclarer.CopyrightMessage);
 	ModuleContents.Add(FString());
-	ModuleContents.Add(FString::Printf(TEXT("#include \"%s.h"), *(InModuleDeclarer.ModuleName)));
+	ModuleContents.Add(FString::Printf(TEXT("#include \"%s.h\""), *(InModuleDeclarer.ModuleName)));
 	ModuleContents.Add(FString());
 	ModuleContents.Add(FString::Printf(TEXT("void F%sModule::StartupModule()"), *(InModuleDeclarer.ModuleName)));
 	ModuleContents.Add(TEXT("{"));
@@ -63,6 +63,40 @@ bool CreateModuleFiles(const FModuleDeclarer& InModuleDeclarer)
 		return false;
 	}
 
+	ModuleContents.Empty();
+	ModuleContents.Add(TEXT("// ") + InModuleDeclarer.CopyrightMessage);
+	ModuleContents.Add(FString());
+	ModuleContents.Add(TEXT("using UnrealBuildTool;"));
+	ModuleContents.Add(FString());
+	ModuleContents.Add(FString::Printf(TEXT("public class %s : ModuleRules"), *(InModuleDeclarer.ModuleName)));
+	ModuleContents.Add(TEXT("{"));
+	ModuleContents.Add(TEXT("\t") + FString::Printf(TEXT("public %s(ReadOnlyTargetRules Target) : base(Target)"), *(InModuleDeclarer.ModuleName)));
+	ModuleContents.Add(TEXT("\t{"));
+	ModuleContents.Add(TEXT("\t\tPCHUsage = ModuleRules.PCHUsageMode.UseExplicitOrSharedPCHs;"));
+	ModuleContents.Add(FString());
+	ModuleContents.Add(TEXT("\t\tPublicDependencyModuleNames.AddRange("));
+	ModuleContents.Add(TEXT("\t\t\tnew string[]"));
+	ModuleContents.Add(TEXT("\t\t\t{"));
+	ModuleContents.Add(TEXT("\t\t\t\t\"Core\""));
+	ModuleContents.Add(TEXT("\t\t\t\t// ... add other public dependencies that you statically link with here ..."));
+	ModuleContents.Add(TEXT("\t\t\t}"));
+	ModuleContents.Add(TEXT("\t\t\t);"));
+	ModuleContents.Add(FString());
+	ModuleContents.Add(TEXT("\t\tPrivateDependencyModuleNames.AddRange("));
+	ModuleContents.Add(TEXT("\t\t\tnew string[]"));
+	ModuleContents.Add(TEXT("\t\t\t{"));
+	ModuleContents.Add(FString());
+	ModuleContents.Add(TEXT("\t\t\t\t// ... add private dependencies that you statically link with here ..."));
+	ModuleContents.Add(TEXT("\t\t\t}"));
+	ModuleContents.Add(TEXT("\t\t\t);"));
+	ModuleContents.Add(TEXT("\t}"));
+	ModuleContents.Add(TEXT("}"));
+
+	if (!FFileHelper::SaveStringArrayToFile(ModuleContents, *(InModuleDeclarer.ModuleRootPath)))
+	{
+		UE_LOG(LogSourceModuleGenerator, Error, TEXT("Create module build file failed!"));
+		return false;
+	}
 
 	return true;
 }
