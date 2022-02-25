@@ -23,9 +23,10 @@ bool CreateModuleFiles(const FModuleDeclarer& InModuleDeclarer)
 	ModuleContents.Add(TEXT("\tvirtual void ShutdownModule() override;"));
 	ModuleContents.Add(TEXT("};"));
 
+	UE_LOG(LogSourceModuleGenerator, Log, TEXT("Creating module header file."));
 	if (!FFileHelper::SaveStringArrayToFile(ModuleContents, *(InModuleDeclarer.ModulePublicPath)))
 	{
-		UE_LOG(LogSourceModuleGenerator, Error, TEXT("Create module header file failed!"));
+		UE_LOG(LogSourceModuleGenerator, Error, TEXT("Creating module header file failed!"));
 		return false;
 	}
 
@@ -57,9 +58,10 @@ bool CreateModuleFiles(const FModuleDeclarer& InModuleDeclarer)
 		break;
 	}
 
+	UE_LOG(LogSourceModuleGenerator, Log, TEXT("Creating module source file."));
 	if (!FFileHelper::SaveStringArrayToFile(ModuleContents, *(InModuleDeclarer.ModulePrivatePath)))
 	{
-		UE_LOG(LogSourceModuleGenerator, Error, TEXT("Create module source file failed!"));
+		UE_LOG(LogSourceModuleGenerator, Error, TEXT("Creating module source file failed!"));
 		return false;
 	}
 
@@ -92,9 +94,10 @@ bool CreateModuleFiles(const FModuleDeclarer& InModuleDeclarer)
 	ModuleContents.Add(TEXT("\t}"));
 	ModuleContents.Add(TEXT("}"));
 
+	UE_LOG(LogSourceModuleGenerator, Log, TEXT("Creating module build file."));
 	if (!FFileHelper::SaveStringArrayToFile(ModuleContents, *(InModuleDeclarer.ModuleRootPath)))
 	{
-		UE_LOG(LogSourceModuleGenerator, Error, TEXT("Create module build file failed!"));
+		UE_LOG(LogSourceModuleGenerator, Error, TEXT("Creating module build file failed!"));
 		return false;
 	}
 
