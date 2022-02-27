@@ -3,9 +3,12 @@
 #include "ModuleFile.h"
 #include "ModuleDeclarer.h"
 #include "SourceModuleGenerator.h"
+#include "ProjectDescriptor.h"
+#include "PluginDescriptor.h"
 
 bool CreateModuleFiles(const FModuleDeclarer& InModuleDeclarer)
 {
+	// Generate module header file.
 	TArray<FString> ModuleContents;
 	ModuleContents.Add(TEXT("// ") + InModuleDeclarer.CopyrightMessage);
 	ModuleContents.Add(FString());
@@ -24,12 +27,13 @@ bool CreateModuleFiles(const FModuleDeclarer& InModuleDeclarer)
 	ModuleContents.Add(TEXT("};"));
 
 	UE_LOG(LogSourceModuleGenerator, Log, TEXT("Creating module header file."));
-	if (!FFileHelper::SaveStringArrayToFile(ModuleContents, *(InModuleDeclarer.ModulePublicPath)))
+	if (!FFileHelper::SaveStringArrayToFile(ModuleContents, *(InModuleDeclarer.ModulePublicFolderPath)))
 	{
 		UE_LOG(LogSourceModuleGenerator, Error, TEXT("Creating module header file failed!"));
 		return false;
 	}
 
+	// Generate module source file.
 	ModuleContents.Empty();
 	ModuleContents.Add(TEXT("// ") + InModuleDeclarer.CopyrightMessage);
 	ModuleContents.Add(FString());
@@ -59,12 +63,13 @@ bool CreateModuleFiles(const FModuleDeclarer& InModuleDeclarer)
 	}
 
 	UE_LOG(LogSourceModuleGenerator, Log, TEXT("Creating module source file."));
-	if (!FFileHelper::SaveStringArrayToFile(ModuleContents, *(InModuleDeclarer.ModulePrivatePath)))
+	if (!FFileHelper::SaveStringArrayToFile(ModuleContents, *(InModuleDeclarer.ModulePrivateFolderPath)))
 	{
 		UE_LOG(LogSourceModuleGenerator, Error, TEXT("Creating module source file failed!"));
 		return false;
 	}
 
+	// Generate module build file.
 	ModuleContents.Empty();
 	ModuleContents.Add(TEXT("// ") + InModuleDeclarer.CopyrightMessage);
 	ModuleContents.Add(FString());
@@ -95,10 +100,23 @@ bool CreateModuleFiles(const FModuleDeclarer& InModuleDeclarer)
 	ModuleContents.Add(TEXT("}"));
 
 	UE_LOG(LogSourceModuleGenerator, Log, TEXT("Creating module build file."));
-	if (!FFileHelper::SaveStringArrayToFile(ModuleContents, *(InModuleDeclarer.ModuleRootPath)))
+	if (!FFileHelper::SaveStringArrayToFile(ModuleContents, *(InModuleDeclarer.ModuleRootFolderPath)))
 	{
 		UE_LOG(LogSourceModuleGenerator, Error, TEXT("Creating module build file failed!"));
 		return false;
+	}
+
+	// Add module descriptor to project or plugin descriptor.
+	FText LoadDescriptorFailReason;
+	switch (InModuleDeclarer.ModuleDescriptorType)
+	{
+	case EModuleDescriptorType::ProjectDescriptor:
+		FProjectDescriptor ProjectDescriptor;
+		if (!ProjectDescriptor.Load(InModuleDeclarer.DescriptorFilePath, LoadDescriptorFailReason))
+		{
+			UE_LOG(LogSourceModuleGenerator, Error, TEXT("Load project descriptor file failed, fail reason:%s"), *(LoadDescriptorFailReason.ToString()));
+			return false;
+		}
 	}
 
 	return true;

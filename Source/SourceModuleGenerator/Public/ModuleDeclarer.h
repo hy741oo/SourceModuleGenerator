@@ -10,7 +10,14 @@ enum class EModuleImplementType : uint8
 	NormalModule = 0,
 
 	// Module that including gameplay code.
-	GameModule,
+	GameModule
+};
+
+enum class EModuleDescriptorType : uint8
+{
+	ProjectDescriptor = 0,
+
+	PluginDescriptor
 };
 
 // Information for creating new module.
@@ -22,13 +29,18 @@ struct FModuleDeclarer
 
 	EModuleImplementType ModuleImplementType = EModuleImplementType::NormalModule;
 
+	EModuleDescriptorType ModuleDescriptorType = EModuleDescriptorType::ProjectDescriptor;
+
 	// Path points to module root folder.
-	FString ModuleRootPath;
+	FString ModuleRootFolderPath;
 
 	// Path points to public folder.
-	FString ModulePublicPath;
+	FString ModulePublicFolderPath;
 
 	// Path points to private folder.
-	FString ModulePrivatePath;
+	FString ModulePrivateFolderPath;
+
+	// Project or plugin descriptor file path.
+	FString DescriptorFilePath;
 };
 
