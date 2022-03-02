@@ -14,4 +14,4 @@ public:
 	virtual void ShutdownModule() override;
 };
 
-DECLARE_LOG_CATEGORY_EXTERN(LogSourceModuleGenerator, Display, All)
+DECLARE_LOG_CATEGORY_EXTERN(LogSourceModuleGenerator, Log, All)

@@ -20,25 +20,20 @@ struct FModuleDeclarer
 
 	FString ModuleName;
 
-	// Path points to module root folder.
-	FString ModuleRootFolderPath;
+	FString ModuleBuildFilePath;
 
-	// Path points to public folder.
-	FString ModulePublicFolderPath;
+	FString ModuleHeaderFilePath;
 
-	// Path points to private folder.
-	FString ModulePrivateFolderPath;
+	FString ModuleSourceFilePath;
 
-	// Project or plugin descriptor file path.
 	FString DescriptorFilePath;
 
-	// Environment that can load this module.
+	// Environment that can load this module, Runtime, Editor etc.
 	FString HostType;
 
 	// Phase at which this module should be loaded during startup.
 	FString LoadingPhase;
 
 	EModuleImplementType ModuleImplementType = EModuleImplementType::NormalModule;
-
 };
 

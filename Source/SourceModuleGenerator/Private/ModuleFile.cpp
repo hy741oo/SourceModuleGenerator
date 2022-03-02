@@ -9,10 +9,18 @@
 #include "rapidjson/filereadstream.h"
 #include "rapidjson/filewritestream.h"
 #include "rapidjson/prettywriter.h"
+#include "HAL/FileManager.h"
+
 #include <cstdio>
 
-bool CreateModuleFiles(const FModuleDeclarer& InModuleDeclarer)
+// Internal function declares.
+void DeleteGeneratedFiles(const TArray<FString>& InGeneratedFilePaths);
+
+bool CreateModule(const FModuleDeclarer& InModuleDeclarer)
 {
+	// Storage temporary generated files path.
+	TArray<FString> GeneratedFilePaths;
+
 	// Generate module header file.
 	TArray<FString> ModuleContents;
 	ModuleContents.Add(TEXT("// ") + InModuleDeclarer.CopyrightMessage);
@@ -32,11 +40,12 @@ bool CreateModuleFiles(const FModuleDeclarer& InModuleDeclarer)
 	ModuleContents.Add(TEXT("};"));
 
 	UE_LOG(LogSourceModuleGenerator, Log, TEXT("Creating module header file."));
-	if (!FFileHelper::SaveStringArrayToFile(ModuleContents, *(InModuleDeclarer.ModulePublicFolderPath)))
+	if (!FFileHelper::SaveStringArrayToFile(ModuleContents, *(InModuleDeclarer.ModuleHeaderFilePath)))
 	{
 		UE_LOG(LogSourceModuleGenerator, Error, TEXT("Creating module header file failed!"));
 		return false;
 	}
+	GeneratedFilePaths.Add(InModuleDeclarer.ModuleName);
 
 	// Generate module source file.
 	ModuleContents.Empty();
@@ -68,11 +77,13 @@ bool CreateModuleFiles(const FModuleDeclarer& InModuleDeclarer)
 	}
 
 	UE_LOG(LogSourceModuleGenerator, Log, TEXT("Creating module source file."));
-	if (!FFileHelper::SaveStringArrayToFile(ModuleContents, *(InModuleDeclarer.ModulePrivateFolderPath)))
+	if (!FFileHelper::SaveStringArrayToFile(ModuleContents, *(InModuleDeclarer.ModuleSourceFilePath)))
 	{
 		UE_LOG(LogSourceModuleGenerator, Error, TEXT("Creating module source file failed!"));
+		::DeleteGeneratedFiles(GeneratedFilePaths);
 		return false;
 	}
+	GeneratedFilePaths.Add(InModuleDeclarer.ModuleSourceFilePath);
 
 	// Generate module build file.
 	ModuleContents.Empty();
@@ -106,11 +117,13 @@ bool CreateModuleFiles(const FModuleDeclarer& InModuleDeclarer)
 	ModuleContents.Add(TEXT("}"));
 
 	UE_LOG(LogSourceModuleGenerator, Log, TEXT("Creating module build file."));
-	if (!FFileHelper::SaveStringArrayToFile(ModuleContents, *(InModuleDeclarer.ModuleRootFolderPath)))
+	if (!FFileHelper::SaveStringArrayToFile(ModuleContents, *(InModuleDeclarer.ModuleBuildFilePath)))
 	{
 		UE_LOG(LogSourceModuleGenerator, Error, TEXT("Creating module build file failed!"));
+		::DeleteGeneratedFiles(GeneratedFilePaths);
 		return false;
 	}
+	GeneratedFilePaths.Add(InModuleDeclarer.ModuleBuildFilePath);
 
 	// Add module descriptor to project or plugin descriptor.
 	FILE* DescriptorFileHandle = std::fopen(TCHAR_TO_UTF8(*(InModuleDeclarer.DescriptorFilePath)), "rb");
@@ -123,6 +136,7 @@ bool CreateModuleFiles(const FModuleDeclarer& InModuleDeclarer)
 	if (!JsonDocument.IsObject())
 	{
 		UE_LOG(LogSourceModuleGenerator, Error, TEXT("Load descriptor file failed!"));
+		::DeleteGeneratedFiles(GeneratedFilePaths);
 		return false;
 	}
 
@@ -152,12 +166,25 @@ bool CreateModuleFiles(const FModuleDeclarer& InModuleDeclarer)
 	JsonWriter.SetFormatOptions(rapidjson::PrettyFormatOptions::kFormatSingleLineArray);
 	JsonWriter.SetIndent('\t', 1);
 
-	if (!JsonDocument.Accept(JsonWriter))
-	{
-		UE_LOG(LogSourceModuleGenerator, Error, TEXT("Add module descriptor failed."));
-		return false;
-	}
+	//if (!JsonDocument.Accept(JsonWriter))
+	//{
+	//	UE_LOG(LogSourceModuleGenerator, Error, TEXT("Add module descriptor failed."));
+	//	::DeleteGeneratedFiles(GeneratedFilePaths);
+	//	return false;
+	//}
 	std::fclose(DescriptorFileHandle);
 
 	return true;
+}
+
+void DeleteGeneratedFiles(const TArray<FString>& InGeneratedFilePaths)
+{
+	IFileManager& FileManager = IFileManager::Get();
+	for (const FString& GeneratedFilePath : InGeneratedFilePaths)
+	{
+		if (!FileManager.Delete(*GeneratedFilePath, true, true, false))
+		{
+			UE_LOG(LogSourceModuleGenerator, Warning, TEXT("Deleting temporary generated file path does not success."));
+		}
+	}
 }
