@@ -13,23 +13,12 @@ enum class EModuleImplementType : uint8
 	GameModule
 };
 
-enum class EModuleDescriptorType : uint8
-{
-	ProjectDescriptor = 0,
-
-	PluginDescriptor
-};
-
 // Information for creating new module.
 struct FModuleDeclarer
 {
 	FString CopyrightMessage;
 
 	FString ModuleName;
-
-	EModuleImplementType ModuleImplementType = EModuleImplementType::NormalModule;
-
-	EModuleDescriptorType ModuleDescriptorType = EModuleDescriptorType::ProjectDescriptor;
 
 	// Path points to module root folder.
 	FString ModuleRootFolderPath;
@@ -42,5 +31,14 @@ struct FModuleDeclarer
 
 	// Project or plugin descriptor file path.
 	FString DescriptorFilePath;
+
+	// Environment that can load this module.
+	FString HostType;
+
+	// Phase at which this module should be loaded during startup.
+	FString LoadingPhase;
+
+	EModuleImplementType ModuleImplementType = EModuleImplementType::NormalModule;
+
 };
 
