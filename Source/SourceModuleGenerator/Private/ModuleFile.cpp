@@ -54,7 +54,7 @@ bool CreateModule(const FModuleDeclarer& InModuleDeclarer)
 			{
 				if (ModuleObject["Name"] == TCHAR_TO_UTF8(*(InModuleDeclarer.ModuleName)))
 				{
-					UE_LOG(LogSourceModuleGenerator, Error, TEXT("Module %s has already been added to Descriptor file, Abort generating."));
+					UE_LOG(LogSourceModuleGenerator, Error, TEXT("Module %s has already been added to Descriptor file, Abort generating."), *(InModuleDeclarer.ModuleName));
 					return false;
 				}
 			}
