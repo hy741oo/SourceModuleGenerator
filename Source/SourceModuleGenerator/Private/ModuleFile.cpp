@@ -18,6 +18,71 @@ void DeleteGeneratedFiles(const TArray<FString>& InGeneratedFilePaths);
 
 bool CreateModule(const FModuleDeclarer& InModuleDeclarer)
 {
+	// Add module descriptor to project or plugin descriptor.
+	UE_LOG(LogSourceModuleGenerator, Log, TEXT("Adding module descriptor to descriptor file... The expected file path is %s"), *(InModuleDeclarer.DescriptorFilePath));
+	if (!(IFileManager::Get().FileExists(*(InModuleDeclarer.DescriptorFilePath))))
+	{
+		UE_LOG(LogSourceModuleGenerator, Error, TEXT("Descriptor file does not exist."));
+		return false;
+	}
+
+	FILE* DescriptorFileHandle = std::fopen(TCHAR_TO_UTF8(*(InModuleDeclarer.DescriptorFilePath)), "rb");
+	char ContentBuffer[65536] = { 0 };
+	rapidjson::FileReadStream DescriptorFileHandleReadStream(DescriptorFileHandle, ContentBuffer, sizeof(ContentBuffer));
+	rapidjson::Document JsonDocument;
+	JsonDocument.ParseStream(DescriptorFileHandleReadStream);
+	std::fclose(DescriptorFileHandle);
+
+	if (!JsonDocument.IsObject())
+	{
+		UE_LOG(LogSourceModuleGenerator, Error, TEXT("Load descriptor file failed."));
+		return false;
+	}
+
+	rapidjson::Value ModuleDescriptor;
+	ModuleDescriptor.SetObject();
+	ModuleDescriptor.AddMember("Name", rapidjson::StringRef(TCHAR_TO_UTF8(*(InModuleDeclarer.ModuleName))), JsonDocument.GetAllocator());
+	ModuleDescriptor.AddMember("Type", rapidjson::StringRef(TCHAR_TO_UTF8(*(InModuleDeclarer.HostType))), JsonDocument.GetAllocator());
+	ModuleDescriptor.AddMember("LoadingPhase", rapidjson::StringRef(TCHAR_TO_UTF8(*(InModuleDeclarer.LoadingPhase))), JsonDocument.GetAllocator());
+
+	if (JsonDocument.HasMember("Modules"))
+	{
+		rapidjson::Value& ModuleList = JsonDocument["Modules"];
+		for (rapidjson::Value& ModuleObject : ModuleList.GetArray())
+		{
+			if (ModuleObject.HasMember("Name"))
+			{
+				if (ModuleObject["Name"] == TCHAR_TO_UTF8(*(InModuleDeclarer.ModuleName)))
+				{
+					UE_LOG(LogSourceModuleGenerator, Error, TEXT("Module %s has already been added to Descriptor file, Abort generating."));
+					return false;
+				}
+			}
+		}
+		ModuleList.PushBack(ModuleDescriptor, JsonDocument.GetAllocator());
+	}
+	else
+	{
+		rapidjson::Value ModuleList;
+		ModuleList.SetArray();
+		ModuleList.PushBack(ModuleDescriptor, JsonDocument.GetAllocator());
+		JsonDocument.AddMember("Modules", ModuleList, JsonDocument.GetAllocator());
+	}
+
+	DescriptorFileHandle = std::fopen(TCHAR_TO_UTF8(*(InModuleDeclarer.DescriptorFilePath)), "wb");
+	rapidjson::FileWriteStream DescriptorFileWriteStream(DescriptorFileHandle, ContentBuffer, sizeof(ContentBuffer));
+
+	rapidjson::PrettyWriter<rapidjson::FileWriteStream> JsonWriter(DescriptorFileWriteStream);
+	JsonWriter.SetFormatOptions(rapidjson::PrettyFormatOptions::kFormatSingleLineArray);
+	JsonWriter.SetIndent('\t', 1);
+
+	if (!JsonDocument.Accept(JsonWriter))
+	{
+		UE_LOG(LogSourceModuleGenerator, Error, TEXT("Add module descriptor failed."));
+		return false;
+	}
+	std::fclose(DescriptorFileHandle);
+
 	// Storage temporary generated files path.
 	TArray<FString> GeneratedFilePaths;
 
@@ -123,64 +188,6 @@ bool CreateModule(const FModuleDeclarer& InModuleDeclarer)
 		::DeleteGeneratedFiles(GeneratedFilePaths);
 		return false;
 	}
-	GeneratedFilePaths.Add(InModuleDeclarer.ModuleBuildFilePath);
-
-	// Add module descriptor to project or plugin descriptor.
-	UE_LOG(LogSourceModuleGenerator, Log, TEXT("Adding module descriptor to descriptor file... The expected file path is %s"), *(InModuleDeclarer.DescriptorFilePath));
-	if (!(IFileManager::Get().FileExists(*(InModuleDeclarer.DescriptorFilePath))))
-	{
-		UE_LOG(LogSourceModuleGenerator, Error, TEXT("Descriptor file does not exist."));
-		::DeleteGeneratedFiles(GeneratedFilePaths);
-		return false;
-	}
-
-	FILE* DescriptorFileHandle = std::fopen(TCHAR_TO_UTF8(*(InModuleDeclarer.DescriptorFilePath)), "rb");
-	char ContentBuffer[65536] = { 0 };
-	rapidjson::FileReadStream DescriptorFileHandleReadStream(DescriptorFileHandle, ContentBuffer, sizeof(ContentBuffer));
-	rapidjson::Document JsonDocument;
-	JsonDocument.ParseStream(DescriptorFileHandleReadStream);
-	std::fclose(DescriptorFileHandle);
-
-	if (!JsonDocument.IsObject())
-	{
-		UE_LOG(LogSourceModuleGenerator, Error, TEXT("Load descriptor file failed."));
-		::DeleteGeneratedFiles(GeneratedFilePaths);
-		return false;
-	}
-
-	rapidjson::Value ModuleDescriptor;
-	ModuleDescriptor.SetObject();
-	ModuleDescriptor.AddMember("Name", rapidjson::StringRef(TCHAR_TO_UTF8(*(InModuleDeclarer.ModuleName))), JsonDocument.GetAllocator());
-	ModuleDescriptor.AddMember("Type", rapidjson::StringRef(TCHAR_TO_UTF8(*(InModuleDeclarer.HostType))), JsonDocument.GetAllocator());
-	ModuleDescriptor.AddMember("LoadingPhase", rapidjson::StringRef(TCHAR_TO_UTF8(*(InModuleDeclarer.LoadingPhase))), JsonDocument.GetAllocator());
-
-	if (JsonDocument.HasMember("Modules"))
-	{
-		rapidjson::Value& ModuleList = JsonDocument["Modules"];
-		ModuleList.PushBack(ModuleDescriptor, JsonDocument.GetAllocator());
-	}
-	else
-	{
-		rapidjson::Value ModuleList;
-		ModuleList.SetArray();
-		ModuleList.PushBack(ModuleDescriptor, JsonDocument.GetAllocator());
-		JsonDocument.AddMember("Modules", ModuleList, JsonDocument.GetAllocator());
-	}
-
-	DescriptorFileHandle = std::fopen(TCHAR_TO_UTF8(*(InModuleDeclarer.DescriptorFilePath)), "wb");
-	rapidjson::FileWriteStream DescriptorFileWriteStream(DescriptorFileHandle, ContentBuffer, sizeof(ContentBuffer));
-
-	rapidjson::PrettyWriter<rapidjson::FileWriteStream> JsonWriter(DescriptorFileWriteStream);
-	JsonWriter.SetFormatOptions(rapidjson::PrettyFormatOptions::kFormatSingleLineArray);
-	JsonWriter.SetIndent('\t', 1);
-
-	if (!JsonDocument.Accept(JsonWriter))
-	{
-		UE_LOG(LogSourceModuleGenerator, Error, TEXT("Add module descriptor failed."));
-		::DeleteGeneratedFiles(GeneratedFilePaths);
-		return false;
-	}
-	std::fclose(DescriptorFileHandle);
 
 	return true;
 }
