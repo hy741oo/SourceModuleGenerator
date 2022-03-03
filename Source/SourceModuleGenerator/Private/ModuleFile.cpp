@@ -45,7 +45,7 @@ bool CreateModule(const FModuleDeclarer& InModuleDeclarer)
 		UE_LOG(LogSourceModuleGenerator, Error, TEXT("Creating module header file failed!"));
 		return false;
 	}
-	GeneratedFilePaths.Add(InModuleDeclarer.ModuleName);
+	GeneratedFilePaths.Add(InModuleDeclarer.ModuleHeaderFilePath);
 
 	// Generate module source file.
 	ModuleContents.Empty();
@@ -126,6 +126,13 @@ bool CreateModule(const FModuleDeclarer& InModuleDeclarer)
 	GeneratedFilePaths.Add(InModuleDeclarer.ModuleBuildFilePath);
 
 	// Add module descriptor to project or plugin descriptor.
+	if (!IFileManager::Get().FileExists(*(InModuleDeclarer.DescriptorFilePath)))
+	{
+		UE_LOG(LogSourceModuleGenerator, Error, TEXT("Descriptor file does not exist."));
+		::DeleteGeneratedFiles(GeneratedFilePaths);
+		return false;
+	}
+
 	FILE* DescriptorFileHandle = std::fopen(TCHAR_TO_UTF8(*(InModuleDeclarer.DescriptorFilePath)), "rb");
 	char ContentBuffer[65536] = { 0 };
 	rapidjson::FileReadStream DescriptorFileHandleReadStream(DescriptorFileHandle, ContentBuffer, sizeof(ContentBuffer));
@@ -166,12 +173,12 @@ bool CreateModule(const FModuleDeclarer& InModuleDeclarer)
 	JsonWriter.SetFormatOptions(rapidjson::PrettyFormatOptions::kFormatSingleLineArray);
 	JsonWriter.SetIndent('\t', 1);
 
-	//if (!JsonDocument.Accept(JsonWriter))
-	//{
-	//	UE_LOG(LogSourceModuleGenerator, Error, TEXT("Add module descriptor failed."));
-	//	::DeleteGeneratedFiles(GeneratedFilePaths);
-	//	return false;
-	//}
+	if (!JsonDocument.Accept(JsonWriter))
+	{
+		UE_LOG(LogSourceModuleGenerator, Error, TEXT("Add module descriptor failed."));
+		::DeleteGeneratedFiles(GeneratedFilePaths);
+		return false;
+	}
 	std::fclose(DescriptorFileHandle);
 
 	return true;
