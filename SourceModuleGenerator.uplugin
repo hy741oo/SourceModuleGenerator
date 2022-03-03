@@ -14,11 +14,13 @@
 	"IsBetaVersion": true,
 	"IsExperimentalVersion": false,
 	"Installed": false,
-	"Modules": [
-		{
+	"Modules": [{
 			"Name": "SourceModuleGenerator",
 			"Type": "Editor",
 			"LoadingPhase": "Default"
-		}
-	]
+		}, {
+			"Name": "SourceModuleGeneratorEditor",
+			"Type": "Editor",
+			"LoadingPhase": "Default"
+		}]
 }

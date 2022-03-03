@@ -39,10 +39,10 @@ bool CreateModule(const FModuleDeclarer& InModuleDeclarer)
 	ModuleContents.Add(TEXT("\tvirtual void ShutdownModule() override;"));
 	ModuleContents.Add(TEXT("};"));
 
-	UE_LOG(LogSourceModuleGenerator, Log, TEXT("Creating module header file."));
+	UE_LOG(LogSourceModuleGenerator, Log, TEXT("Creating module header file... The expected file path is %s"), *(InModuleDeclarer.ModuleHeaderFilePath));
 	if (!FFileHelper::SaveStringArrayToFile(ModuleContents, *(InModuleDeclarer.ModuleHeaderFilePath)))
 	{
-		UE_LOG(LogSourceModuleGenerator, Error, TEXT("Creating module header file failed!"));
+		UE_LOG(LogSourceModuleGenerator, Error, TEXT("Creating module header file failed."));
 		return false;
 	}
 	GeneratedFilePaths.Add(InModuleDeclarer.ModuleHeaderFilePath);
@@ -76,10 +76,10 @@ bool CreateModule(const FModuleDeclarer& InModuleDeclarer)
 		break;
 	}
 
-	UE_LOG(LogSourceModuleGenerator, Log, TEXT("Creating module source file."));
+	UE_LOG(LogSourceModuleGenerator, Log, TEXT("Creating module source file... The expected file path is %s"), *(InModuleDeclarer.ModuleSourceFilePath));
 	if (!FFileHelper::SaveStringArrayToFile(ModuleContents, *(InModuleDeclarer.ModuleSourceFilePath)))
 	{
-		UE_LOG(LogSourceModuleGenerator, Error, TEXT("Creating module source file failed!"));
+		UE_LOG(LogSourceModuleGenerator, Error, TEXT("Creating module source file failed."));
 		::DeleteGeneratedFiles(GeneratedFilePaths);
 		return false;
 	}
@@ -108,7 +108,7 @@ bool CreateModule(const FModuleDeclarer& InModuleDeclarer)
 	ModuleContents.Add(TEXT("\t\tPrivateDependencyModuleNames.AddRange("));
 	ModuleContents.Add(TEXT("\t\t\tnew string[]"));
 	ModuleContents.Add(TEXT("\t\t\t{"));
-	ModuleContents.Add(TEXT("\t\t\t\t\"CoreUObject\""));
+	ModuleContents.Add(TEXT("\t\t\t\t\"CoreUObject\","));
 	ModuleContents.Add(TEXT("\t\t\t\t\"Engine\""));
 	ModuleContents.Add(TEXT("\t\t\t\t// ... add private dependencies that you statically link with here ..."));
 	ModuleContents.Add(TEXT("\t\t\t}"));
@@ -116,17 +116,18 @@ bool CreateModule(const FModuleDeclarer& InModuleDeclarer)
 	ModuleContents.Add(TEXT("\t}"));
 	ModuleContents.Add(TEXT("}"));
 
-	UE_LOG(LogSourceModuleGenerator, Log, TEXT("Creating module build file."));
+	UE_LOG(LogSourceModuleGenerator, Log, TEXT("Creating module build file... The expected file path is %s"), *(InModuleDeclarer.ModuleBuildFilePath));
 	if (!FFileHelper::SaveStringArrayToFile(ModuleContents, *(InModuleDeclarer.ModuleBuildFilePath)))
 	{
-		UE_LOG(LogSourceModuleGenerator, Error, TEXT("Creating module build file failed!"));
+		UE_LOG(LogSourceModuleGenerator, Error, TEXT("Creating module build file failed."));
 		::DeleteGeneratedFiles(GeneratedFilePaths);
 		return false;
 	}
 	GeneratedFilePaths.Add(InModuleDeclarer.ModuleBuildFilePath);
 
 	// Add module descriptor to project or plugin descriptor.
-	if (!IFileManager::Get().FileExists(*(InModuleDeclarer.DescriptorFilePath)))
+	UE_LOG(LogSourceModuleGenerator, Log, TEXT("Adding module descriptor to descriptor file... The expected file path is %s"), *(InModuleDeclarer.DescriptorFilePath));
+	if (!(IFileManager::Get().FileExists(*(InModuleDeclarer.DescriptorFilePath))))
 	{
 		UE_LOG(LogSourceModuleGenerator, Error, TEXT("Descriptor file does not exist."));
 		::DeleteGeneratedFiles(GeneratedFilePaths);
@@ -142,7 +143,7 @@ bool CreateModule(const FModuleDeclarer& InModuleDeclarer)
 
 	if (!JsonDocument.IsObject())
 	{
-		UE_LOG(LogSourceModuleGenerator, Error, TEXT("Load descriptor file failed!"));
+		UE_LOG(LogSourceModuleGenerator, Error, TEXT("Load descriptor file failed."));
 		::DeleteGeneratedFiles(GeneratedFilePaths);
 		return false;
 	}
@@ -186,12 +187,20 @@ bool CreateModule(const FModuleDeclarer& InModuleDeclarer)
 
 void DeleteGeneratedFiles(const TArray<FString>& InGeneratedFilePaths)
 {
+	UE_LOG(LogSourceModuleGenerator, Log, TEXT("Deleting generated files..."));
 	IFileManager& FileManager = IFileManager::Get();
 	for (const FString& GeneratedFilePath : InGeneratedFilePaths)
 	{
 		if (!FileManager.Delete(*GeneratedFilePath, true, true, false))
 		{
 			UE_LOG(LogSourceModuleGenerator, Warning, TEXT("Deleting temporary generated file path does not success."));
+		}
+		UE_LOG(LogSourceModuleGenerator, Log, TEXT("Deleted file %s"), *GeneratedFilePath);
+		FString DirectoryPath = FPaths::GetPath(GeneratedFilePath);
+		if (FileManager.DirectoryExists(*DirectoryPath))
+		{
+			FileManager.DeleteDirectory(*DirectoryPath);
+			UE_LOG(LogSourceModuleGenerator, Log, TEXT("Deleted directory %s"), *DirectoryPath);
 		}
 	}
 }
