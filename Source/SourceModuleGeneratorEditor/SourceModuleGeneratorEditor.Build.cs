@@ -20,7 +20,8 @@ public class SourceModuleGeneratorEditor : ModuleRules
 			new string[]
 			{
 				"CoreUObject",
-				"Engine"
+				"Engine",
+				"SlateCore"
 				// ... add private dependencies that you statically link with here ...
 			}
 			);

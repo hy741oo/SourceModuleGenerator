@@ -1,10 +1,18 @@
 // Copyright 2022 U.N.Owen, All Rights Reserved.
 
 #include "SourceModuleGeneratorEditor.h"
+#include "Styling/SlateStyle.h"
+
+// define class static members.
+TSharedPtr<FSlateStyleSet> FSourceModuleGeneratorEditorModule::StyleInstance = nullptr;
 
 void FSourceModuleGeneratorEditorModule::StartupModule()
 {
 	// This code will execute after you module is loaded into memory; the exact timing is specified in the .uplugin file per-module.
+	if (!FSourceModuleGeneratorEditorModule::StyleInstance.IsValid())
+	{
+		FSourceModuleGeneratorEditorModule::StyleInstance = MakeShared<FSlateStyleSet>("ConstructingSlateSet");
+	}
 }
 
 void FSourceModuleGeneratorEditorModule::ShutdownModule()

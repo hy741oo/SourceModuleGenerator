@@ -36,10 +36,7 @@ public class SourceModuleGenerator : ModuleRules
 			new string[]
 			{
 				"CoreUObject",
-				"Engine",
-				"Slate",
-				"SlateCore",
-				"Projects"
+				"Engine"
 				// ... add private dependencies that you statically link with here ...	
 			}
 			);
