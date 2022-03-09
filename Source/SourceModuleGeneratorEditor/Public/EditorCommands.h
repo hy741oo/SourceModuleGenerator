@@ -1,19 +1,17 @@
 // Copyright 2022 U.N.Owen, All Rights Reserved.
 
+#pragma once
+
 #include "CoreMinimal.h"
 #include "Framework/Commands/Commands.h"
-#include "SourceModuleGeneratorEditor.h"
 
 class FEditorCommands : public TCommands<FEditorCommands>
 {
-public:
-	FEditorCommands() : TCommands<FEditorCommands>(TEXT("ContextName"), NSLOCTEXT("TextNamespace", "TextKey", "TextContent"), NAME_None, FSourceModuleGeneratorEditorModule::StyleInstance->GetStyleSetName())
-	{
-		// Empty body.
-	}
+private:
+	TSharedPtr<FUICommandInfo> ButtonAction;
 
-	virtual void RegisterCommands() override
-	{
-		// Empty body.
-	}
+public:
+	FEditorCommands(); 
+
+	virtual void RegisterCommands() override;
 };
