@@ -2,8 +2,11 @@
 
 #include "SourceModuleGeneratorEditor.h"
 #include "Styling/SlateStyle.h"
+#include "Styling/SlateStyleRegistry.h"
+#include "Framework/Commands/Commands.h"
+#include "EditorCommands.h"
 
-// define class static members.
+// Define class static members.
 TSharedPtr<FSlateStyleSet> FSourceModuleGeneratorEditorModule::StyleInstance = nullptr;
 
 void FSourceModuleGeneratorEditorModule::StartupModule()
@@ -12,6 +15,8 @@ void FSourceModuleGeneratorEditorModule::StartupModule()
 	if (!FSourceModuleGeneratorEditorModule::StyleInstance.IsValid())
 	{
 		FSourceModuleGeneratorEditorModule::StyleInstance = MakeShared<FSlateStyleSet>("ConstructingSlateSet");
+		FSlateStyleRegistry::RegisterSlateStyle(*FSourceModuleGeneratorEditorModule::StyleInstance);
+		FEditorCommands::Register();
 	}
 }
 
@@ -22,3 +27,4 @@ void FSourceModuleGeneratorEditorModule::ShutdownModule()
 }
 
 IMPLEMENT_MODULE(FSourceModuleGeneratorEditorModule, SourceModuleGeneratorEditor)
+
