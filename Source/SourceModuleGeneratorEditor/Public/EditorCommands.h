@@ -7,7 +7,7 @@
 
 class FEditorCommands : public TCommands<FEditorCommands>
 {
-private:
+public:
 	TSharedPtr<FUICommandInfo> ButtonAction;
 
 public:

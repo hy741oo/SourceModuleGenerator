@@ -22,7 +22,8 @@ public class SourceModuleGeneratorEditor : ModuleRules
 				"CoreUObject",
 				"Engine",
 				"Slate",
-				"SlateCore"
+				"SlateCore",
+				"ToolMenus"
 				// ... add private dependencies that you statically link with here ...
 			}
 			);

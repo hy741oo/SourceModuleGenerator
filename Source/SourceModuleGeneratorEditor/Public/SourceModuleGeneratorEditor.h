@@ -7,6 +7,7 @@
 
 // Forward declaration.
 class FSlateStyleSet;
+class FUICommandList;
 
 class FSourceModuleGeneratorEditorModule : public IModuleInterface
 {
@@ -18,5 +19,9 @@ public:
 
 public:
 	static TSharedPtr<FSlateStyleSet> StyleInstance;
+	static TSharedPtr<FUICommandList> CommandList;
+
+public:
+	void RegisterMenu();
 };
 
