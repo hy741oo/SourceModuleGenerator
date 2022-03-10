@@ -22,6 +22,7 @@ void FSourceModuleGeneratorEditorModule::StartupModule()
 		FEditorCommands::Register();
 		FSourceModuleGeneratorEditorModule::CommandList = MakeShareable(new FUICommandList);
 		FSourceModuleGeneratorEditorModule::CommandList->MapAction(FEditorCommands::Get().ButtonAction, FExecuteAction::CreateLambda([]() { UE_LOG(LogTemp, Warning, TEXT("You clicked button.")); }), FCanExecuteAction());
+		FSourceModuleGeneratorEditorModule::CommandList->MapAction(FEditorCommands::Get().ButtonAction, FExecuteAction::CreateLambda([]() { UE_LOG(LogTemp, Warning, TEXT("You clicked button. Again.")); }), FCanExecuteAction());
 		UToolMenus::RegisterStartupCallback(FSimpleMulticastDelegate::FDelegate::CreateRaw(this, &FSourceModuleGeneratorEditorModule::RegisterMenu));
 	}
 }
@@ -34,6 +35,8 @@ void FSourceModuleGeneratorEditorModule::ShutdownModule()
 	UToolMenus::UnRegisterStartupCallback(this);
 	UToolMenus::UnregisterOwner(this);
 	FSlateStyleRegistry::UnRegisterSlateStyle(*FSourceModuleGeneratorEditorModule::StyleInstance);
+	ensure(FSourceModuleGeneratorEditorModule::StyleInstance.IsUnique());
+	FSourceModuleGeneratorEditorModule::StyleInstance.Reset();
 	FEditorCommands::Unregister();
 }
 
@@ -46,7 +49,7 @@ void FSourceModuleGeneratorEditorModule::RegisterMenu()
 		UToolMenu* ToolMenu = UToolMenus::Get()->ExtendMenu("LevelEditor.MainMenu.File");
 		{
 			FToolMenuSection& Section = ToolMenu->FindOrAddSection("FileProject");
-			Section.AddMenuEntryWithCommandList(FEditorCommands::Get().ButtonAction, this->CommandList, );
+			Section.AddMenuEntryWithCommandList(FEditorCommands::Get().ButtonAction, this->CommandList);
 		}
 	}
 }
