@@ -17,12 +17,11 @@ void FSourceModuleGeneratorEditorModule::StartupModule()
 
 	if (!FSourceModuleGeneratorEditorModule::StyleInstance.IsValid())
 	{
-		FSourceModuleGeneratorEditorModule::StyleInstance = MakeShared<FSlateStyleSet>("ConstructingSlateSet");
+		FSourceModuleGeneratorEditorModule::StyleInstance = MakeShared<FSlateStyleSet>("SourceModuleGeneratorEditorSlateStyleSet");
 		FSlateStyleRegistry::RegisterSlateStyle(*FSourceModuleGeneratorEditorModule::StyleInstance);
 		FEditorCommands::Register();
 		FSourceModuleGeneratorEditorModule::CommandList = MakeShareable(new FUICommandList);
-		FSourceModuleGeneratorEditorModule::CommandList->MapAction(FEditorCommands::Get().ButtonAction, FExecuteAction::CreateLambda([]() { UE_LOG(LogTemp, Warning, TEXT("You clicked button.")); }), FCanExecuteAction());
-		FSourceModuleGeneratorEditorModule::CommandList->MapAction(FEditorCommands::Get().ButtonAction, FExecuteAction::CreateLambda([]() { UE_LOG(LogTemp, Warning, TEXT("You clicked button. Again.")); }), FCanExecuteAction());
+		FSourceModuleGeneratorEditorModule::CommandList->MapAction(FEditorCommands::Get().ButtonAction, FExecuteAction::CreateRaw(this, &FSourceModuleGeneratorEditorModule::AddingModuleDialog));
 		UToolMenus::RegisterStartupCallback(FSimpleMulticastDelegate::FDelegate::CreateRaw(this, &FSourceModuleGeneratorEditorModule::RegisterMenu));
 	}
 }
@@ -33,7 +32,6 @@ void FSourceModuleGeneratorEditorModule::ShutdownModule()
 	// we call this function before unloading the module.
 
 	UToolMenus::UnRegisterStartupCallback(this);
-	UToolMenus::UnregisterOwner(this);
 	FSlateStyleRegistry::UnRegisterSlateStyle(*FSourceModuleGeneratorEditorModule::StyleInstance);
 	ensure(FSourceModuleGeneratorEditorModule::StyleInstance.IsUnique());
 	FSourceModuleGeneratorEditorModule::StyleInstance.Reset();
@@ -44,7 +42,6 @@ IMPLEMENT_MODULE(FSourceModuleGeneratorEditorModule, SourceModuleGeneratorEditor
 
 void FSourceModuleGeneratorEditorModule::RegisterMenu()
 {
-	FToolMenuOwnerScoped OwnerScoped(this);
 	{
 		UToolMenu* ToolMenu = UToolMenus::Get()->ExtendMenu("LevelEditor.MainMenu.File");
 		{
@@ -52,5 +49,10 @@ void FSourceModuleGeneratorEditorModule::RegisterMenu()
 			Section.AddMenuEntryWithCommandList(FEditorCommands::Get().ButtonAction, this->CommandList);
 		}
 	}
+}
+
+void FSourceModuleGeneratorEditorModule::AddingModuleDialog()
+{
+
 }
 

@@ -23,5 +23,6 @@ public:
 
 public:
 	void RegisterMenu();
+	void AddingModuleDialog();
 };
 

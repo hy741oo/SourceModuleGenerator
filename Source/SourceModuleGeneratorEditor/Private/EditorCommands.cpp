@@ -14,7 +14,7 @@ FEditorCommands::FEditorCommands() : TCommands<FEditorCommands>(TEXT("ContextNam
 
 void FEditorCommands::RegisterCommands()
 {
-	UI_COMMAND(this->ButtonAction, "FriendlyName", "Description", EUserInterfaceActionType::Button, FInputGesture());
+	UI_COMMAND(this->ButtonAction, "Add New Module...", "Add new module into a project or plugin source.", EUserInterfaceActionType::Button, FInputChord());
 }
 
 #undef LOCTEXT_NAMESPACE
