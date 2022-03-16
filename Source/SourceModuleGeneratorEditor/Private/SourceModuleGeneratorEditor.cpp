@@ -6,6 +6,12 @@
 #include "Framework/Commands/Commands.h"
 #include "EditorCommands.h"
 #include "ToolMenus.h"
+#include "Widgets/SWindow.h"
+#include "Modules/ModuleManager.h"
+#include "Interfaces/IMainFrameModule.h"
+#include "Widgets/Text/STextBlock.h"
+#include "Widgets/SBoxPanel.h"
+#include "Widgets/Layout/SSplitter.h"
 
 // Define class static members.
 TSharedPtr<FSlateStyleSet> FSourceModuleGeneratorEditorModule::StyleInstance = nullptr;
@@ -53,6 +59,29 @@ void FSourceModuleGeneratorEditorModule::RegisterMenu()
 
 void FSourceModuleGeneratorEditorModule::AddingModuleDialog()
 {
+	TSharedPtr<SWindow> MainWindow;
+	SAssignNew(MainWindow, SWindow)
+	.Title(NSLOCTEXT("SourceModuleGeneratorEditor", "WindowTitle", "Source Module Generator"))
+	.SizingRule(ESizingRule::Autosized)
+	[
+		SNew(SVerticalBox)
+		+ SVerticalBox::Slot()
+		[
+			SNew(STextBlock)
+			.Text(NSLOCTEXT("SourceModuleGeneratorEditor", "WindowContent", "FirstLine"))
+		]
+		+ SVerticalBox::Slot()
+		[
+			SNew(STextBlock)
+			.Text(NSLOCTEXT("SourceModuleGeneratorEditor", "WindowContent", "SecondLine"))
+		]
+	]
+	;
 
+	if (MainWindow.IsValid())
+	{
+		IMainFrameModule& MainFrameModule = FModuleManager::LoadModuleChecked<IMainFrameModule>(TEXT("MainFrame"));
+		FSlateApplication::Get().AddModalWindow(MainWindow.ToSharedRef(), MainFrameModule.GetParentWindow());
+	}
 }
 
