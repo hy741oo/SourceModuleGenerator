@@ -11,7 +11,7 @@
 #include "Interfaces/IMainFrameModule.h"
 #include "Widgets/Text/STextBlock.h"
 #include "Widgets/SBoxPanel.h"
-#include "Widgets/Layout/SSplitter.h"
+#include "Widgets/Layout/SBorder.h"
 
 // Define class static members.
 TSharedPtr<FSlateStyleSet> FSourceModuleGeneratorEditorModule::StyleInstance = nullptr;
@@ -60,15 +60,23 @@ void FSourceModuleGeneratorEditorModule::RegisterMenu()
 void FSourceModuleGeneratorEditorModule::AddingModuleDialog()
 {
 	TSharedPtr<SWindow> MainWindow;
+	FSlateBrush Brush;
 	SAssignNew(MainWindow, SWindow)
 	.Title(NSLOCTEXT("SourceModuleGeneratorEditor", "WindowTitle", "Source Module Generator"))
 	.SizingRule(ESizingRule::Autosized)
+	.AutoCenter(EAutoCenter::PreferredWorkArea)
 	[
 		SNew(SVerticalBox)
 		+ SVerticalBox::Slot()
+		.VAlign(EVerticalAlignment::VAlign_Top)
+		.AutoHeight()
 		[
-			SNew(STextBlock)
-			.Text(NSLOCTEXT("SourceModuleGeneratorEditor", "WindowContent", "FirstLine"))
+			SNew(SBorder)
+			.BorderImage(FEditorStyle::GetBrush("ContentBrowser.ThumbnailShadow"))
+			[
+				SNew(STextBlock)
+				.Text(NSLOCTEXT("SourceModuleGeneratorEditor", "WindowContent", "FirstLine"))
+			]
 		]
 		+ SVerticalBox::Slot()
 		[
