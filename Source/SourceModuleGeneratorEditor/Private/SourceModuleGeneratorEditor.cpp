@@ -12,6 +12,7 @@
 #include "Widgets/Text/STextBlock.h"
 #include "Widgets/SBoxPanel.h"
 #include "Widgets/Layout/SBorder.h"
+#include "Widgets/Input/SEditableTextBox.h"
 
 // Define class static members.
 TSharedPtr<FSlateStyleSet> FSourceModuleGeneratorEditorModule::StyleInstance = nullptr;
@@ -70,12 +71,25 @@ void FSourceModuleGeneratorEditorModule::AddingModuleDialog()
 		+ SVerticalBox::Slot()
 		.VAlign(EVerticalAlignment::VAlign_Top)
 		.AutoHeight()
+		.Padding(FMargin(2.f))
 		[
 			SNew(SBorder)
-			.BorderImage(FEditorStyle::GetBrush("ContentBrowser.ThumbnailShadow"))
 			[
-				SNew(STextBlock)
-				.Text(NSLOCTEXT("SourceModuleGeneratorEditor", "WindowContent", "FirstLine"))
+				SNew(SHorizontalBox)
+				+ SHorizontalBox::Slot()
+				.Padding(FMargin(2.f))
+				.AutoWidth()
+				.VAlign(EVerticalAlignment::VAlign_Center)
+				[
+					SNew(STextBlock)
+					.Text(NSLOCTEXT("SourceModuleGeneratorEditor", "WindowContent", "Module Name:"))
+				]
+				+ SHorizontalBox::Slot()
+				.Padding(FMargin(2.f))
+				.VAlign(EVerticalAlignment::VAlign_Center)
+				[
+					SNew(SEditableTextBox)
+				]
 			]
 		]
 		+ SVerticalBox::Slot()
