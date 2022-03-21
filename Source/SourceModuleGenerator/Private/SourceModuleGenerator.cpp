@@ -2,6 +2,8 @@
 
 #include "SourceModuleGenerator.h"
 
+DEFINE_LOG_CATEGORY(LogSourceModuleGenerator)
+
 #define LOCTEXT_NAMESPACE "FSourceModuleGeneratorModule"
 
 void FSourceModuleGeneratorModule::StartupModule()
@@ -18,5 +20,3 @@ void FSourceModuleGeneratorModule::ShutdownModule()
 #undef LOCTEXT_NAMESPACE
 	
 IMPLEMENT_MODULE(FSourceModuleGeneratorModule, SourceModuleGenerator)
-
-DEFINE_LOG_CATEGORY(LogSourceModuleGenerator)

@@ -5,6 +5,8 @@
 #include "CoreMinimal.h"
 #include "Modules/ModuleManager.h"
 
+DECLARE_LOG_CATEGORY_EXTERN(LogSourceModuleGenerator, Log, All)
+
 class FSourceModuleGeneratorModule : public IModuleInterface
 {
 public:
@@ -14,4 +16,3 @@ public:
 	virtual void ShutdownModule() override;
 };
 
-DECLARE_LOG_CATEGORY_EXTERN(LogSourceModuleGenerator, Log, All)

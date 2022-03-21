@@ -9,10 +9,11 @@
 #include "Widgets/SWindow.h"
 #include "Modules/ModuleManager.h"
 #include "Interfaces/IMainFrameModule.h"
-#include "Widgets/Text/STextBlock.h"
-#include "Widgets/SBoxPanel.h"
-#include "Widgets/Layout/SBorder.h"
 #include "Widgets/Input/SEditableTextBox.h"
+#include "Widgets/Layout/SGridPanel.h"
+#include "Widgets/Layout/SSpacer.h"
+
+DEFINE_LOG_CATEGORY(LogSourceModuleGeneratorEditor)
 
 // Define class static members.
 TSharedPtr<FSlateStyleSet> FSourceModuleGeneratorEditorModule::StyleInstance = nullptr;
@@ -61,41 +62,37 @@ void FSourceModuleGeneratorEditorModule::RegisterMenu()
 void FSourceModuleGeneratorEditorModule::AddingModuleDialog()
 {
 	TSharedPtr<SWindow> MainWindow;
-	FSlateBrush Brush;
+	TSharedPtr<SEditableTextBox> CopyrightMessage;
+	TSharedPtr<SEditableTextBox> ModuleName;
+
 	SAssignNew(MainWindow, SWindow)
 	.Title(NSLOCTEXT("SourceModuleGeneratorEditor", "WindowTitle", "Source Module Generator"))
 	.SizingRule(ESizingRule::Autosized)
 	.AutoCenter(EAutoCenter::PreferredWorkArea)
 	[
-		SNew(SVerticalBox)
-		+ SVerticalBox::Slot()
-		.VAlign(EVerticalAlignment::VAlign_Top)
-		.AutoHeight()
+		SNew(SGridPanel)
+		.FillColumn(2, 1.0f)
+		+ SGridPanel::Slot(1, 1)
 		.Padding(FMargin(2.f))
 		[
-			SNew(SBorder)
-			[
-				SNew(SHorizontalBox)
-				+ SHorizontalBox::Slot()
-				.Padding(FMargin(2.f))
-				.AutoWidth()
-				.VAlign(EVerticalAlignment::VAlign_Center)
-				[
-					SNew(STextBlock)
-					.Text(NSLOCTEXT("SourceModuleGeneratorEditor", "WindowContent", "Module Name:"))
-				]
-				+ SHorizontalBox::Slot()
-				.Padding(FMargin(2.f))
-				.VAlign(EVerticalAlignment::VAlign_Center)
-				[
-					SNew(SEditableTextBox)
-				]
-			]
+			SNew(STextBlock)
+			.Text(NSLOCTEXT("SourceModuleGeneratorEditor", "CopyrightMessage", "Copyright Message:"))
 		]
-		+ SVerticalBox::Slot()
+		+ SGridPanel::Slot(2, 1)
+		.Padding(FMargin(2.f))
+		[
+			SAssignNew(CopyrightMessage, SEditableTextBox)
+		]
+		+ SGridPanel::Slot(1, 2)
+		.Padding(FMargin(2.f))
 		[
 			SNew(STextBlock)
-			.Text(NSLOCTEXT("SourceModuleGeneratorEditor", "WindowContent", "SecondLine"))
+			.Text(NSLOCTEXT("SourceModuleGeneratorEditor", "ModuleName", "Module Name:"))
+		]
+		+ SGridPanel::Slot(2, 2)
+		.Padding(FMargin(2.f))
+		[
+			SAssignNew(ModuleName, SEditableTextBox)
 		]
 	]
 	;
@@ -104,6 +101,10 @@ void FSourceModuleGeneratorEditorModule::AddingModuleDialog()
 	{
 		IMainFrameModule& MainFrameModule = FModuleManager::LoadModuleChecked<IMainFrameModule>(TEXT("MainFrame"));
 		FSlateApplication::Get().AddModalWindow(MainWindow.ToSharedRef(), MainFrameModule.GetParentWindow());
+	}
+	else
+	{
+		UE_LOG(LogSourceModuleGeneratorEditor, Error, TEXT("Generate main window failed."));
 	}
 }
 

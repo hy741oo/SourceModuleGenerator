@@ -5,6 +5,8 @@
 #include "CoreMinimal.h"
 #include "Modules/ModuleManager.h"
 
+DECLARE_LOG_CATEGORY_EXTERN(LogSourceModuleGeneratorEditor, Log, All)
+
 // Forward declaration.
 class FSlateStyleSet;
 class FUICommandList;
@@ -25,4 +27,5 @@ public:
 	void RegisterMenu();
 	void AddingModuleDialog();
 };
+
 
