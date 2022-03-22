@@ -24,7 +24,9 @@ public class SourceModuleGeneratorEditor : ModuleRules
 				"Slate",
 				"SlateCore",
 				"ToolMenus",
-				"MainFrame"
+				"MainFrame",
+				"InputCore",
+				"Projects"
 				// ... add private dependencies that you statically link with here ...
 			}
 			);

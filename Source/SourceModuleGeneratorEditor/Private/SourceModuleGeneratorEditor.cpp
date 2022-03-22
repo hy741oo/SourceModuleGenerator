@@ -1,4 +1,4 @@
-// Copyright 2022 U.N.Owen, All Rights Reserved.
+﻿// Copyright 2022 U.N.Owen, All Rights Reserved.
 
 #include "SourceModuleGeneratorEditor.h"
 #include "Styling/SlateStyle.h"
@@ -6,9 +6,10 @@
 #include "Framework/Commands/Commands.h"
 #include "EditorCommands.h"
 #include "ToolMenus.h"
-#include "Widgets/SWindow.h"
 #include "Modules/ModuleManager.h"
 #include "Interfaces/IMainFrameModule.h"
+#include "ModuleDescriptor.h"
+#include "Widgets/SWindow.h"
 #include "Widgets/Input/SEditableTextBox.h"
 #include "Widgets/Layout/SGridPanel.h"
 #include "Widgets/Layout/SSpacer.h"
@@ -64,6 +65,8 @@ void FSourceModuleGeneratorEditorModule::AddingModuleDialog()
 	TSharedPtr<SWindow> MainWindow;
 	TSharedPtr<SEditableTextBox> CopyrightMessage;
 	TSharedPtr<SEditableTextBox> ModuleName;
+	TSharedPtr<SComboBox<EHostType::Type>> HostType;
+	TArray<EHostType::Type> OptionsSource;
 
 	SAssignNew(MainWindow, SWindow)
 	.Title(NSLOCTEXT("SourceModuleGeneratorEditor", "WindowTitle", "Source Module Generator"))
@@ -73,27 +76,38 @@ void FSourceModuleGeneratorEditorModule::AddingModuleDialog()
 		SNew(SGridPanel)
 		.FillColumn(2, 1.0f)
 		+ SGridPanel::Slot(1, 1)
-		.Padding(FMargin(2.f))
+		.Padding(FMargin(2.0f))
+		.HAlign(EHorizontalAlignment::HAlign_Right)
 		[
 			SNew(STextBlock)
 			.Text(NSLOCTEXT("SourceModuleGeneratorEditor", "CopyrightMessage", "Copyright Message:"))
 		]
 		+ SGridPanel::Slot(2, 1)
-		.Padding(FMargin(2.f))
+		.Padding(FMargin(2.0f))
 		[
 			SAssignNew(CopyrightMessage, SEditableTextBox)
 		]
 		+ SGridPanel::Slot(1, 2)
-		.Padding(FMargin(2.f))
+		.Padding(FMargin(2.0f))
+		.HAlign(EHorizontalAlignment::HAlign_Right)
 		[
 			SNew(STextBlock)
 			.Text(NSLOCTEXT("SourceModuleGeneratorEditor", "ModuleName", "Module Name:"))
 		]
 		+ SGridPanel::Slot(2, 2)
-		.Padding(FMargin(2.f))
+		.Padding(FMargin(2.0f))
 		[
 			SAssignNew(ModuleName, SEditableTextBox)
 		]
+		+ SGridPanel::Slot(1, 3)
+		.Padding(FMargin(2.0f))
+		.HAlign(EHorizontalAlignment::HAlign_Right)
+		[
+			SNew(STextBlock)
+			.Text(NSLOCTEXT("SourceModuleGeneratorEditor", "HostType", "Host Type:"))
+		]
+		+ SGridPanel::Slot(2, 3)
+		.Padding(FMargin(2.0f))
 	]
 	;
 
