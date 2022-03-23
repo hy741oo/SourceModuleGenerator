@@ -65,8 +65,13 @@ void FSourceModuleGeneratorEditorModule::AddingModuleDialog()
 	TSharedPtr<SWindow> MainWindow;
 	TSharedPtr<SEditableTextBox> CopyrightMessage;
 	TSharedPtr<SEditableTextBox> ModuleName;
-	TSharedPtr<SComboBox<EHostType::Type>> HostType;
-	TArray<EHostType::Type> OptionsSource;
+
+	TSharedPtr<STextBlock> CurrentHostType;
+	TArray<TSharedPtr<EHostType::Type>> OptionsSource;
+	for (EHostType::Type Item = EHostType::Runtime; Item < EHostType::Max; Item = EHostType::Type(Item + 1))
+	{
+		OptionsSource.Add(MakeShared<EHostType::Type>(EHostType::Type(Item)));
+	}
 
 	SAssignNew(MainWindow, SWindow)
 	.Title(NSLOCTEXT("SourceModuleGeneratorEditor", "WindowTitle", "Source Module Generator"))
@@ -108,9 +113,37 @@ void FSourceModuleGeneratorEditorModule::AddingModuleDialog()
 		]
 		+ SGridPanel::Slot(2, 3)
 		.Padding(FMargin(2.0f))
+		.HAlign(EHorizontalAlignment::HAlign_Left)
+		[
+			SNew(SComboBox<TSharedPtr<EHostType::Type>>)
+			.OptionsSource(&OptionsSource)
+			.InitiallySelectedItem(MakeShared<EHostType::Type>(EHostType::Runtime))
+			.OnGenerateWidget_Lambda
+			(
+				[](const TSharedPtr<EHostType::Type> Type) -> const TSharedRef<SWidget>
+				{
+					return SNew(STextBlock)
+							.Text(FText::FromString(EHostType::ToString(*Type)))
+							;
+				}
+			)
+			.OnSelectionChanged_Lambda
+			(
+				[&CurrentHostType](const TSharedPtr<EHostType::Type> HostType, const ESelectInfo::Type SelectInfo) -> void
+				{
+					if (CurrentHostType.IsValid())
+					{
+						//CurrentHostType->SetText(FText::FromString(EHostType::ToString(*HostType)));
+					}
+				}
+			)
+			[
+				SAssignNew(CurrentHostType, STextBlock)
+				.Text(FText(FText::FromString(EHostType::ToString(EHostType::Runtime))))
+			]
+		]
 	]
 	;
-
 	if (MainWindow.IsValid())
 	{
 		IMainFrameModule& MainFrameModule = FModuleManager::LoadModuleChecked<IMainFrameModule>(TEXT("MainFrame"));
