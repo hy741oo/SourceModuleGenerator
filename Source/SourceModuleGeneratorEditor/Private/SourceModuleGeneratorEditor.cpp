@@ -83,6 +83,7 @@ void FSourceModuleGeneratorEditorModule::AddingModuleDialog()
 		+ SGridPanel::Slot(1, 1)
 		.Padding(FMargin(2.0f))
 		.HAlign(EHorizontalAlignment::HAlign_Right)
+		.VAlign(EVerticalAlignment::VAlign_Center)
 		[
 			SNew(STextBlock)
 			.Text(NSLOCTEXT("SourceModuleGeneratorEditor", "CopyrightMessage", "Copyright Message:"))
@@ -95,6 +96,7 @@ void FSourceModuleGeneratorEditorModule::AddingModuleDialog()
 		+ SGridPanel::Slot(1, 2)
 		.Padding(FMargin(2.0f))
 		.HAlign(EHorizontalAlignment::HAlign_Right)
+		.VAlign(EVerticalAlignment::VAlign_Center)
 		[
 			SNew(STextBlock)
 			.Text(NSLOCTEXT("SourceModuleGeneratorEditor", "ModuleName", "Module Name:"))
@@ -107,6 +109,7 @@ void FSourceModuleGeneratorEditorModule::AddingModuleDialog()
 		+ SGridPanel::Slot(1, 3)
 		.Padding(FMargin(2.0f))
 		.HAlign(EHorizontalAlignment::HAlign_Right)
+		.VAlign(EVerticalAlignment::VAlign_Center)
 		[
 			SNew(STextBlock)
 			.Text(NSLOCTEXT("SourceModuleGeneratorEditor", "HostType", "Host Type:"))
@@ -117,7 +120,7 @@ void FSourceModuleGeneratorEditorModule::AddingModuleDialog()
 		[
 			SNew(SComboBox<TSharedPtr<EHostType::Type>>)
 			.OptionsSource(&OptionsSource)
-			.InitiallySelectedItem(OptionsSource[0])
+			.InitiallySelectedItem(*OptionsSource.begin())
 			.OnGenerateWidget_Lambda
 			(
 				[](const TSharedPtr<EHostType::Type> Type) -> const TSharedRef<SWidget>
