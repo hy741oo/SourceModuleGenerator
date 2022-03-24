@@ -117,7 +117,7 @@ void FSourceModuleGeneratorEditorModule::AddingModuleDialog()
 		[
 			SNew(SComboBox<TSharedPtr<EHostType::Type>>)
 			.OptionsSource(&OptionsSource)
-			.InitiallySelectedItem(MakeShared<EHostType::Type>(EHostType::Runtime))
+			.InitiallySelectedItem(OptionsSource[0])
 			.OnGenerateWidget_Lambda
 			(
 				[](const TSharedPtr<EHostType::Type> Type) -> const TSharedRef<SWidget>
@@ -133,7 +133,7 @@ void FSourceModuleGeneratorEditorModule::AddingModuleDialog()
 				{
 					if (CurrentHostType.IsValid())
 					{
-						//CurrentHostType->SetText(FText::FromString(EHostType::ToString(*HostType)));
+						CurrentHostType->SetText(FText::FromString(EHostType::ToString(*HostType)));
 					}
 				}
 			)
