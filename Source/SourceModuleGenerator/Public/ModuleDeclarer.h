@@ -10,7 +10,11 @@ enum class EModuleImplementType : uint8
 	NormalModule = 0,
 
 	// Module that including gameplay code.
-	GameModule
+	GameModule,
+
+	// Space holder.
+	// NOTE:DO NOT USE THIS ENUM DIRECTLY.
+	Max
 };
 
 // Information for creating new module.

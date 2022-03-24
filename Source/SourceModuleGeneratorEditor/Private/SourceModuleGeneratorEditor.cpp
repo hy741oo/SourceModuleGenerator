@@ -9,6 +9,7 @@
 #include "Modules/ModuleManager.h"
 #include "Interfaces/IMainFrameModule.h"
 #include "ModuleDescriptor.h"
+#include "ModuleDeclarer.h"
 #include "Widgets/SWindow.h"
 #include "Widgets/Input/SEditableTextBox.h"
 #include "Widgets/Layout/SGridPanel.h"
@@ -67,10 +68,24 @@ void FSourceModuleGeneratorEditorModule::AddingModuleDialog()
 	TSharedPtr<SEditableTextBox> ModuleName;
 
 	TSharedPtr<STextBlock> CurrentHostType;
-	TArray<TSharedPtr<EHostType::Type>> OptionsSource;
+	TArray<TSharedPtr<EHostType::Type>> HostTypeOptionsSource;
 	for (EHostType::Type Item = EHostType::Runtime; Item < EHostType::Max; Item = EHostType::Type(Item + 1))
 	{
-		OptionsSource.Add(MakeShared<EHostType::Type>(EHostType::Type(Item)));
+		HostTypeOptionsSource.Add(MakeShared<EHostType::Type>(EHostType::Type(Item)));
+	}
+
+	TSharedPtr<STextBlock> CurrentLoadingPhase;
+	TArray<TSharedPtr<ELoadingPhase::Type>> LoadingPhaseOptionsSource;
+	for (ELoadingPhase::Type Item = ELoadingPhase::EarliestPossible; Item < ELoadingPhase::Max; Item = ELoadingPhase::Type(Item + 1))
+	{
+		LoadingPhaseOptionsSource.Add(MakeShared<ELoadingPhase::Type>(ELoadingPhase::Type(Item)));
+	}
+
+	TSharedPtr<STextBlock> CurrentModuleImplementType;
+	TArray<TSharedPtr<EModuleImplementType>> ModuleImplementTypeOptionsSource;
+	for (EModuleImplementType Item = EModuleImplementType::NormalModule; Item < EModuleImplementType::Max; Item = EModuleImplementType(int(Item) + 1))
+	{
+		ModuleImplementTypeOptionsSource.Add(MakeShared<EModuleImplementType>(Item));
 	}
 
 	SAssignNew(MainWindow, SWindow)
@@ -119,8 +134,8 @@ void FSourceModuleGeneratorEditorModule::AddingModuleDialog()
 		.HAlign(EHorizontalAlignment::HAlign_Left)
 		[
 			SNew(SComboBox<TSharedPtr<EHostType::Type>>)
-			.OptionsSource(&OptionsSource)
-			.InitiallySelectedItem(*OptionsSource.begin())
+			.OptionsSource(&HostTypeOptionsSource)
+			.InitiallySelectedItem(*HostTypeOptionsSource.begin())
 			.OnGenerateWidget_Lambda
 			(
 				[](const TSharedPtr<EHostType::Type> Type) -> const TSharedRef<SWidget>
@@ -143,6 +158,101 @@ void FSourceModuleGeneratorEditorModule::AddingModuleDialog()
 			[
 				SAssignNew(CurrentHostType, STextBlock)
 				.Text(FText(FText::FromString(EHostType::ToString(EHostType::Runtime))))
+			]
+		]
+		+ SGridPanel::Slot(1, 4)
+		.Padding(FMargin(2.0f))
+		.HAlign(EHorizontalAlignment::HAlign_Right)
+		.VAlign(EVerticalAlignment::VAlign_Center)
+		[
+			SNew(STextBlock)
+			.Text(NSLOCTEXT("SourceModuleGeneratorEditor", "LoadingPhase", "Loading Phase:"))
+		]
+		+ SGridPanel::Slot(2, 4)
+		.Padding(FMargin(2.0f))
+		.HAlign(EHorizontalAlignment::HAlign_Left)
+		[
+			SNew(SComboBox<TSharedPtr<ELoadingPhase::Type>>)
+			.OptionsSource(&LoadingPhaseOptionsSource)
+			.InitiallySelectedItem(LoadingPhaseOptionsSource[6])
+			.OnGenerateWidget_Lambda
+			(
+				[](const TSharedPtr<ELoadingPhase::Type> LoadingPhase) -> const TSharedRef<SWidget>
+				{
+					return SNew(STextBlock)
+							.Text(FText::FromString(ELoadingPhase::ToString(*LoadingPhase)))
+							;
+				}
+			)
+			.OnSelectionChanged_Lambda
+			(
+				[&CurrentLoadingPhase](const TSharedPtr<ELoadingPhase::Type> LoadingPhase, const ESelectInfo::Type SelectInfo) -> void
+				{
+					if (CurrentLoadingPhase.IsValid())
+					{
+						CurrentLoadingPhase->SetText(FText::FromString(ELoadingPhase::ToString(*LoadingPhase)));
+					}
+				}
+			)
+			[
+				SAssignNew(CurrentLoadingPhase, STextBlock)
+				.Text(FText(FText::FromString(ELoadingPhase::ToString(ELoadingPhase::Default))))
+			]
+		]
+		+ SGridPanel::Slot(1, 5)
+		.Padding(FMargin(2.0f))
+		.HAlign(EHorizontalAlignment::HAlign_Right)
+		.VAlign(EVerticalAlignment::VAlign_Center)
+		[
+			SNew(STextBlock)
+			.Text(NSLOCTEXT("SourceModuleGenerator", "ModuleImplementType", "Module Implement Type:"))
+		]
+		+ SGridPanel::Slot(2, 5)
+		.Padding(FMargin(2.0f))
+		.HAlign(EHorizontalAlignment::HAlign_Left)
+		[
+			SNew(SComboBox<TSharedPtr<EModuleImplementType>>)
+			.OptionsSource(&ModuleImplementTypeOptionsSource)
+			.InitiallySelectedItem(*ModuleImplementTypeOptionsSource.begin())
+			.OnGenerateWidget_Lambda
+			(
+				[](const TSharedPtr<EModuleImplementType> Type) -> const TSharedRef<SWidget>
+				{
+					switch (*Type)
+					{
+					case EModuleImplementType::NormalModule:
+						return SNew(STextBlock).Text(FText::FromString("NormalModule"));
+					case EModuleImplementType::GameModule:
+						return SNew(STextBlock).Text(FText::FromString("GameModule"));
+					default:
+						return SNew(STextBlock).Text(FText::FromString("<Invalid module implement type>"));
+					}
+				}
+			)
+			.OnSelectionChanged_Lambda
+			(
+				[&CurrentModuleImplementType](const TSharedPtr<EModuleImplementType> ModuleImplementType, const ESelectInfo::Type SelectInfo) -> void
+				{
+					if (CurrentModuleImplementType.IsValid())
+					{
+						switch (*ModuleImplementType)
+						{
+						case EModuleImplementType::NormalModule:
+							CurrentModuleImplementType->SetText(FText::FromString("NormalModule"));
+							break;
+						case EModuleImplementType::GameModule:
+							CurrentModuleImplementType->SetText(FText::FromString("GameModule"));
+							break;
+						default:
+							CurrentModuleImplementType->SetText(FText::FromString("<Invalid module implement type>"));
+							break;
+						}
+					}
+				}
+			)
+			[
+				SAssignNew(CurrentModuleImplementType, STextBlock)
+				.Text(FText::FromString("NormalModule"))
 			]
 		]
 	]
