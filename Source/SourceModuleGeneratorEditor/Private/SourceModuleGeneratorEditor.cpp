@@ -14,6 +14,7 @@
 #include "Widgets/Input/SEditableTextBox.h"
 #include "Widgets/Layout/SGridPanel.h"
 #include "Widgets/Layout/SSpacer.h"
+#include "Interfaces/IPluginManager.h"
 
 DEFINE_LOG_CATEGORY(LogSourceModuleGeneratorEditor)
 
@@ -88,6 +89,26 @@ void FSourceModuleGeneratorEditorModule::AddingModuleDialog()
 		ModuleImplementTypeOptionsSource.Add(MakeShared<EModuleImplementType>(Item));
 	}
 
+	TSharedPtr<SComboBox<TSharedPtr<IPlugin>>> SelectedPlugin;
+	TSharedPtr<STextBlock> SelectedPluginText;
+	TSharedPtr<STextBlock> PluginHintText;
+	TArray<TSharedPtr<IPlugin>> PluginsOptionsSource;
+	for (TSharedRef<IPlugin> Item : IPluginManager::Get().GetDiscoveredPlugins())
+	{
+		if (Item->GetType() == EPluginType::Project)
+		{
+			PluginsOptionsSource.Add(Item);
+		}
+	}
+	PluginsOptionsSource.Sort
+	(
+		[](const TSharedPtr<IPlugin>& A, const TSharedPtr<IPlugin>& B)
+		{
+			return A->GetFriendlyName() < B->GetFriendlyName();
+		}
+	)
+	;
+
 	SAssignNew(MainWindow, SWindow)
 	.Title(NSLOCTEXT("SourceModuleGeneratorEditor", "WindowTitle", "Source Module Generator"))
 	.SizingRule(ESizingRule::Autosized)
@@ -132,22 +153,23 @@ void FSourceModuleGeneratorEditorModule::AddingModuleDialog()
 		+ SGridPanel::Slot(2, 3)
 		.Padding(FMargin(2.0f))
 		.HAlign(EHorizontalAlignment::HAlign_Left)
+		.VAlign(EVerticalAlignment::VAlign_Center)
 		[
 			SNew(SComboBox<TSharedPtr<EHostType::Type>>)
 			.OptionsSource(&HostTypeOptionsSource)
 			.InitiallySelectedItem(*HostTypeOptionsSource.begin())
 			.OnGenerateWidget_Lambda
 			(
-				[](const TSharedPtr<EHostType::Type> Type) -> const TSharedRef<SWidget>
+				[](const TSharedPtr<EHostType::Type>& HostType) -> const TSharedRef<SWidget>
 				{
 					return SNew(STextBlock)
-							.Text(FText::FromString(EHostType::ToString(*Type)))
+							.Text(FText::FromString(EHostType::ToString(*HostType)))
 							;
 				}
 			)
 			.OnSelectionChanged_Lambda
 			(
-				[&CurrentHostType](const TSharedPtr<EHostType::Type> HostType, const ESelectInfo::Type SelectInfo) -> void
+				[&CurrentHostType](const TSharedPtr<EHostType::Type>& HostType, const ESelectInfo::Type& SelectInfo) -> void
 				{
 					if (CurrentHostType.IsValid())
 					{
@@ -171,13 +193,14 @@ void FSourceModuleGeneratorEditorModule::AddingModuleDialog()
 		+ SGridPanel::Slot(2, 4)
 		.Padding(FMargin(2.0f))
 		.HAlign(EHorizontalAlignment::HAlign_Left)
+		.VAlign(EVerticalAlignment::VAlign_Center)
 		[
 			SNew(SComboBox<TSharedPtr<ELoadingPhase::Type>>)
 			.OptionsSource(&LoadingPhaseOptionsSource)
 			.InitiallySelectedItem(LoadingPhaseOptionsSource[6])
 			.OnGenerateWidget_Lambda
 			(
-				[](const TSharedPtr<ELoadingPhase::Type> LoadingPhase) -> const TSharedRef<SWidget>
+				[](const TSharedPtr<ELoadingPhase::Type>& LoadingPhase) -> const TSharedRef<SWidget>
 				{
 					return SNew(STextBlock)
 							.Text(FText::FromString(ELoadingPhase::ToString(*LoadingPhase)))
@@ -186,7 +209,7 @@ void FSourceModuleGeneratorEditorModule::AddingModuleDialog()
 			)
 			.OnSelectionChanged_Lambda
 			(
-				[&CurrentLoadingPhase](const TSharedPtr<ELoadingPhase::Type> LoadingPhase, const ESelectInfo::Type SelectInfo) -> void
+				[&CurrentLoadingPhase](const TSharedPtr<ELoadingPhase::Type>& LoadingPhase, const ESelectInfo::Type& SelectInfo) -> void
 				{
 					if (CurrentLoadingPhase.IsValid())
 					{
@@ -210,13 +233,14 @@ void FSourceModuleGeneratorEditorModule::AddingModuleDialog()
 		+ SGridPanel::Slot(2, 5)
 		.Padding(FMargin(2.0f))
 		.HAlign(EHorizontalAlignment::HAlign_Left)
+		.VAlign(EVerticalAlignment::VAlign_Center)
 		[
 			SNew(SComboBox<TSharedPtr<EModuleImplementType>>)
 			.OptionsSource(&ModuleImplementTypeOptionsSource)
 			.InitiallySelectedItem(*ModuleImplementTypeOptionsSource.begin())
 			.OnGenerateWidget_Lambda
 			(
-				[](const TSharedPtr<EModuleImplementType> Type) -> const TSharedRef<SWidget>
+				[](const TSharedPtr<EModuleImplementType>& Type) -> const TSharedRef<SWidget>
 				{
 					switch (*Type)
 					{
@@ -231,7 +255,7 @@ void FSourceModuleGeneratorEditorModule::AddingModuleDialog()
 			)
 			.OnSelectionChanged_Lambda
 			(
-				[&CurrentModuleImplementType](const TSharedPtr<EModuleImplementType> ModuleImplementType, const ESelectInfo::Type SelectInfo) -> void
+				[&CurrentModuleImplementType](const TSharedPtr<EModuleImplementType>& ModuleImplementType, const ESelectInfo::Type& SelectInfo) -> void
 				{
 					if (CurrentModuleImplementType.IsValid())
 					{
@@ -254,6 +278,83 @@ void FSourceModuleGeneratorEditorModule::AddingModuleDialog()
 				SAssignNew(CurrentModuleImplementType, STextBlock)
 				.Text(FText::FromString("NormalModule"))
 			]
+		]
+		+ SGridPanel::Slot(1, 6)
+		.Padding(FMargin(2.0f))
+		.HAlign(EHorizontalAlignment::HAlign_Right)
+		.VAlign(EVerticalAlignment::VAlign_Center)
+		[
+			SNew(STextBlock)
+			.Text(NSLOCTEXT("SourceModuleGeneratorEditor", "IsItPluginModule", "Is it plugin module:"))
+		]
+		+ SGridPanel::Slot(2, 6)
+		.Padding(FMargin(2.0f))
+		.HAlign(EHorizontalAlignment::HAlign_Left)
+		.VAlign(EVerticalAlignment::VAlign_Center)
+		[
+			SNew(SCheckBox)
+			.OnCheckStateChanged_Lambda
+			(
+				[&PluginHintText, &SelectedPlugin](const ECheckBoxState& State) -> void
+				{
+					if (State == ECheckBoxState::Checked)
+					{
+						PluginHintText->SetVisibility(EVisibility::Visible);
+						SelectedPlugin->SetVisibility(EVisibility::Visible);
+					}
+					else
+					{
+						PluginHintText->SetVisibility(EVisibility::Collapsed);
+						SelectedPlugin->SetVisibility(EVisibility::Collapsed);
+					}
+				}
+			)
+		]
+		+ SGridPanel::Slot(1, 7)
+		.Padding(FMargin(2.0f))
+		.HAlign(EHorizontalAlignment::HAlign_Right)
+		.VAlign(EVerticalAlignment::VAlign_Center)
+		[
+			SAssignNew(PluginHintText, STextBlock)
+			.Visibility(EVisibility::Collapsed)
+			.Text(NSLOCTEXT("SourceModuleGeneratorEditor", "WhichPlugin", "Which plugin:"))
+		]
+		+ SGridPanel::Slot(2, 7)
+		.Padding(FMargin(2.0f))
+		.HAlign(EHorizontalAlignment::HAlign_Left)
+		.VAlign(EVerticalAlignment::VAlign_Center)
+		[
+			SAssignNew(SelectedPlugin, SComboBox<TSharedPtr<IPlugin>>)
+			.Visibility(EVisibility::Collapsed)
+			.OptionsSource(&PluginsOptionsSource)
+			.InitiallySelectedItem(*PluginsOptionsSource.begin())
+			.OnGenerateWidget_Lambda
+			(
+				[](const TSharedPtr<IPlugin>& Plugin) -> TSharedRef<SWidget>
+				{
+					return SNew(STextBlock).Text(FText::FromString(Plugin->GetFriendlyName()));
+				}
+			)
+			.OnSelectionChanged_Lambda
+			(
+				[&SelectedPluginText](const TSharedPtr<IPlugin>& Plugin, const ESelectInfo::Type& SelectInfo) -> void
+				{
+					SelectedPluginText->SetText(FText::FromString(Plugin->GetFriendlyName()));
+				}
+			)
+			[
+				SAssignNew(SelectedPluginText, STextBlock)
+				.Text(FText::FromString((*PluginsOptionsSource.begin())->GetFriendlyName()))
+			]
+		]
+		+ SGridPanel::Slot(1, 19)
+		.Padding(FMargin(2.0f))
+		.HAlign(EHorizontalAlignment::HAlign_Center)
+		.VAlign(EVerticalAlignment::VAlign_Center)
+		.ColumnSpan(2)
+		[
+			SNew(SButton)
+			.Text(NSLOCTEXT("SourceModuleGenerator", "Generate", "Generate"))
 		]
 	]
 	;
