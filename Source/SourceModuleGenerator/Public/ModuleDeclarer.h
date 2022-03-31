@@ -4,17 +4,26 @@
 
 #include "CoreMinimal.h"
 
-enum class EModuleImplementType : uint8
+namespace EModuleImplementType
 {
-	// Regular module implement type.
-	NormalModule = 0,
+	enum Type : uint8
+	{
+		// Regular module implement type.
+		NormalModule = 0,
 
-	// Module that including gameplay code.
-	GameModule,
+		// Module that including gameplay code.
+		GameModule,
 
-	// Space holder.
-	// NOTE:DO NOT USE THIS ENUM DIRECTLY.
-	Max
+		// Space holder.
+		// NOTE:DO NOT USE THIS ENUM DIRECTLY.
+		Max
+	};
+
+	// Converts enum type to TCHAR type.
+	SOURCEMODULEGENERATOR_API const TCHAR* ToString(const EModuleImplementType::Type Value);
+
+	// Converts TCHAR type to enum type.
+	SOURCEMODULEGENERATOR_API const EModuleImplementType::Type FromString(const TCHAR* Value);
 };
 
 // Information for creating new module.
@@ -38,6 +47,6 @@ struct FModuleDeclarer
 	// Phase at which this module should be loaded during startup.
 	FString LoadingPhase;
 
-	EModuleImplementType ModuleImplementType = EModuleImplementType::NormalModule;
+	EModuleImplementType::Type ModuleImplementType = EModuleImplementType::NormalModule;
 };
 

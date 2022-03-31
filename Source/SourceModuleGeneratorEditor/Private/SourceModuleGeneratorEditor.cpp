@@ -75,6 +75,23 @@ void FSourceModuleGeneratorEditorModule::AddingModuleDialog()
 	{
 		HostTypeOptionsSource.Add(MakeShared<EHostType::Type>(EHostType::Type(Item)));
 	}
+	HostTypeOptionsSource.Sort
+	(
+		[](const TSharedPtr<EHostType::Type>& A, const TSharedPtr<EHostType::Type>& B)
+		{
+			return FString(EHostType::ToString(*A)) < FString(EHostType::ToString(*B));
+		}
+	)
+	;
+	TSharedPtr<EHostType::Type>* InitialHostType = HostTypeOptionsSource.FindByPredicate
+		(
+			[](const TSharedPtr<EHostType::Type>& Type) -> bool
+			{
+				return *Type == EHostType::Runtime;
+			}
+		)
+	;
+
 
 	TSharedPtr<STextBlock> CurrentLoadingPhase;
 	TArray<TSharedPtr<ELoadingPhase::Type>> LoadingPhaseOptionsSource;
@@ -82,13 +99,45 @@ void FSourceModuleGeneratorEditorModule::AddingModuleDialog()
 	{
 		LoadingPhaseOptionsSource.Add(MakeShared<ELoadingPhase::Type>(ELoadingPhase::Type(Item)));
 	}
+	LoadingPhaseOptionsSource.Sort
+	(
+		[](const TSharedPtr<ELoadingPhase::Type>& A, const TSharedPtr<ELoadingPhase::Type>& B)
+		{
+			return FString(ELoadingPhase::ToString(*A)) < FString(ELoadingPhase::ToString(*B));
+		}
+	)
+	;
+	TSharedPtr<ELoadingPhase::Type>* InitialLoadingPhase = LoadingPhaseOptionsSource.FindByPredicate
+		(
+			[](const TSharedPtr<ELoadingPhase::Type>& Type) -> bool
+			{
+				return *Type == ELoadingPhase::Default;
+			}
+		)
+	;
 
 	TSharedPtr<STextBlock> CurrentModuleImplementType;
-	TArray<TSharedPtr<EModuleImplementType>> ModuleImplementTypeOptionsSource;
-	for (EModuleImplementType Item = EModuleImplementType::NormalModule; Item < EModuleImplementType::Max; Item = EModuleImplementType(int(Item) + 1))
+	TArray<TSharedPtr<EModuleImplementType::Type>> ModuleImplementTypeOptionsSource;
+	for (EModuleImplementType::Type Item = EModuleImplementType::Type::NormalModule; Item < EModuleImplementType::Type::Max; Item = EModuleImplementType::Type(int(Item) + 1))
 	{
-		ModuleImplementTypeOptionsSource.Add(MakeShared<EModuleImplementType>(Item));
+		ModuleImplementTypeOptionsSource.Add(MakeShared<EModuleImplementType::Type>(Item));
 	}
+	ModuleImplementTypeOptionsSource.Sort
+	(
+		[](const TSharedPtr<EModuleImplementType::Type>& A, const TSharedPtr<EModuleImplementType::Type>& B)
+		{
+			return FString(EModuleImplementType::ToString(*A)) < FString(EModuleImplementType::ToString(*B));
+		}
+	)
+	;
+	TSharedPtr<EModuleImplementType::Type>* InitialModuleImplementType = ModuleImplementTypeOptionsSource.FindByPredicate
+		(
+			[](const TSharedPtr<EModuleImplementType::Type>& Type) -> bool
+			{
+				return *Type == EModuleImplementType::NormalModule;
+			}
+		)
+	;
 
 	TSharedPtr<SComboBox<TSharedPtr<IPlugin>>> SelectedPlugin;
 	TSharedPtr<STextBlock> SelectedPluginText;
@@ -117,18 +166,15 @@ void FSourceModuleGeneratorEditorModule::AddingModuleDialog()
 	[
 		SNew(SVerticalBox)
 		+ SVerticalBox::Slot()
-		.Padding(FMargin(2.0f))
-		.VAlign(EVerticalAlignment::VAlign_Top)
-		.AutoHeight()
+		.FillHeight(0.9f)
 		[
 			SNew(SUniformGridPanel)
-			.SlotPadding(FMargin(2.0f))
 			+ SUniformGridPanel::Slot(0, 0)
 			.HAlign(EHorizontalAlignment::HAlign_Right)
 			.VAlign(EVerticalAlignment::VAlign_Center)
 			[
 				SNew(STextBlock)
-				.Text(NSLOCTEXT("SourceModuleGeneratorEditor", "CopyrightMessage", "Copyright Message:"))
+				.Text(NSLOCTEXT("SourceModuleGeneratorEditor", "CopyrightMessage", "Copyright Message: "))
 			]
 			+ SUniformGridPanel::Slot(1, 0)
 			.VAlign(EVerticalAlignment::VAlign_Center)
@@ -140,7 +186,7 @@ void FSourceModuleGeneratorEditorModule::AddingModuleDialog()
 			.VAlign(EVerticalAlignment::VAlign_Center)
 			[
 				SNew(STextBlock)
-				.Text(NSLOCTEXT("SourceModuleGeneratorEditor", "ModuleName", "Module Name:"))
+				.Text(NSLOCTEXT("SourceModuleGeneratorEditor", "ModuleName", "Module Name: "))
 			]
 			+ SUniformGridPanel::Slot(1, 1)
 			.VAlign(EVerticalAlignment::VAlign_Center)
@@ -152,7 +198,7 @@ void FSourceModuleGeneratorEditorModule::AddingModuleDialog()
 			.VAlign(EVerticalAlignment::VAlign_Center)
 			[
 				SNew(STextBlock)
-				.Text(NSLOCTEXT("SourceModuleGeneratorEditor", "HostType", "Host Type:"))
+				.Text(NSLOCTEXT("SourceModuleGeneratorEditor", "HostType", "Host Type: "))
 			]
 			+ SUniformGridPanel::Slot(1, 2)
 			.HAlign(EHorizontalAlignment::HAlign_Left)
@@ -160,7 +206,7 @@ void FSourceModuleGeneratorEditorModule::AddingModuleDialog()
 			[
 				SNew(SComboBox<TSharedPtr<EHostType::Type>>)
 				.OptionsSource(&HostTypeOptionsSource)
-				.InitiallySelectedItem(*HostTypeOptionsSource.begin())
+				.InitiallySelectedItem(InitialHostType ? *InitialHostType : nullptr)
 				.OnGenerateWidget_Lambda
 				(
 					[](const TSharedPtr<EHostType::Type>& HostType) -> const TSharedRef<SWidget>
@@ -182,7 +228,7 @@ void FSourceModuleGeneratorEditorModule::AddingModuleDialog()
 				)
 				[
 					SAssignNew(CurrentHostType, STextBlock)
-					.Text(FText(FText::FromString(EHostType::ToString(EHostType::Runtime))))
+					.Text(InitialHostType ? FText::FromString(EHostType::ToString(**InitialHostType)) : FText::FromString("<Invalid host type>"))
 				]
 			]
 			+ SUniformGridPanel::Slot(0, 3)
@@ -190,7 +236,7 @@ void FSourceModuleGeneratorEditorModule::AddingModuleDialog()
 			.VAlign(EVerticalAlignment::VAlign_Center)
 			[
 				SNew(STextBlock)
-				.Text(NSLOCTEXT("SourceModuleGeneratorEditor", "LoadingPhase", "Loading Phase:"))
+				.Text(NSLOCTEXT("SourceModuleGeneratorEditor", "LoadingPhase", "Loading Phase: "))
 			]
 			+ SUniformGridPanel::Slot(1, 3)
 			.HAlign(EHorizontalAlignment::HAlign_Left)
@@ -198,7 +244,7 @@ void FSourceModuleGeneratorEditorModule::AddingModuleDialog()
 			[
 				SNew(SComboBox<TSharedPtr<ELoadingPhase::Type>>)
 				.OptionsSource(&LoadingPhaseOptionsSource)
-				.InitiallySelectedItem(LoadingPhaseOptionsSource[6])
+				.InitiallySelectedItem(InitialLoadingPhase ? *InitialLoadingPhase : nullptr)
 				.OnGenerateWidget_Lambda
 				(
 					[](const TSharedPtr<ELoadingPhase::Type>& LoadingPhase) -> const TSharedRef<SWidget>
@@ -220,7 +266,7 @@ void FSourceModuleGeneratorEditorModule::AddingModuleDialog()
 				)
 				[
 					SAssignNew(CurrentLoadingPhase, STextBlock)
-					.Text(FText(FText::FromString(ELoadingPhase::ToString(ELoadingPhase::Default))))
+					.Text(InitialLoadingPhase ? FText::FromString(ELoadingPhase::ToString(**InitialLoadingPhase)) : FText::FromString("<Invalid loading phase>"))
 				]
 			]
 			+ SUniformGridPanel::Slot(0, 4)
@@ -228,24 +274,24 @@ void FSourceModuleGeneratorEditorModule::AddingModuleDialog()
 			.VAlign(EVerticalAlignment::VAlign_Center)
 			[
 				SNew(STextBlock)
-				.Text(NSLOCTEXT("SourceModuleGenerator", "ModuleImplementType", "Module Implement Type:"))
+				.Text(NSLOCTEXT("SourceModuleGenerator", "ModuleImplementType", "Module Implement Type: "))
 			]
 			+ SUniformGridPanel::Slot(1, 4)
 			.HAlign(EHorizontalAlignment::HAlign_Left)
 			.VAlign(EVerticalAlignment::VAlign_Center)
 			[
-				SNew(SComboBox<TSharedPtr<EModuleImplementType>>)
+				SNew(SComboBox<TSharedPtr<EModuleImplementType::Type>>)
 				.OptionsSource(&ModuleImplementTypeOptionsSource)
-				.InitiallySelectedItem(*ModuleImplementTypeOptionsSource.begin())
+				.InitiallySelectedItem(InitialModuleImplementType ? *InitialModuleImplementType : nullptr)
 				.OnGenerateWidget_Lambda
 				(
-					[](const TSharedPtr<EModuleImplementType>& Type) -> const TSharedRef<SWidget>
+					[](const TSharedPtr<EModuleImplementType::Type>& Type) -> const TSharedRef<SWidget>
 					{
 						switch (*Type)
 						{
-						case EModuleImplementType::NormalModule:
+						case EModuleImplementType::Type::NormalModule:
 							return SNew(STextBlock).Text(FText::FromString("NormalModule"));
-						case EModuleImplementType::GameModule:
+						case EModuleImplementType::Type::GameModule:
 							return SNew(STextBlock).Text(FText::FromString("GameModule"));
 						default:
 							return SNew(STextBlock).Text(FText::FromString("<Invalid module implement type>"));
@@ -254,16 +300,16 @@ void FSourceModuleGeneratorEditorModule::AddingModuleDialog()
 				)
 				.OnSelectionChanged_Lambda
 				(
-					[&CurrentModuleImplementType](const TSharedPtr<EModuleImplementType>& ModuleImplementType, const ESelectInfo::Type& SelectInfo) -> void
+					[&CurrentModuleImplementType](const TSharedPtr<EModuleImplementType::Type>& ModuleImplementType, const ESelectInfo::Type& SelectInfo) -> void
 					{
 						if (CurrentModuleImplementType.IsValid())
 						{
 							switch (*ModuleImplementType)
 							{
-							case EModuleImplementType::NormalModule:
+							case EModuleImplementType::Type::NormalModule:
 								CurrentModuleImplementType->SetText(FText::FromString("NormalModule"));
 								break;
-							case EModuleImplementType::GameModule:
+							case EModuleImplementType::Type::GameModule:
 								CurrentModuleImplementType->SetText(FText::FromString("GameModule"));
 								break;
 							default:
@@ -284,7 +330,7 @@ void FSourceModuleGeneratorEditorModule::AddingModuleDialog()
 			[
 				SNew(STextBlock)
 				.IsEnabled(PluginsOptionsSource.Num() != 0)
-				.Text(NSLOCTEXT("SourceModuleGeneratorEditor", "Isthisapluginmodule", "Is this a plugin module:"))
+				.Text(NSLOCTEXT("SourceModuleGeneratorEditor", "Isthisapluginmodule", "Is this a plugin module: "))
 			]
 			+ SUniformGridPanel::Slot(1, 5)
 			.HAlign(EHorizontalAlignment::HAlign_Left)
@@ -308,7 +354,7 @@ void FSourceModuleGeneratorEditorModule::AddingModuleDialog()
 			[
 				SAssignNew(PluginHintText, STextBlock)
 				.IsEnabled(false)
-				.Text(NSLOCTEXT("SourceModuleGeneratorEditor", "WhichPlugin", "Which plugin:"))
+				.Text(NSLOCTEXT("SourceModuleGeneratorEditor", "WhichPlugin", "Which plugin: "))
 			]
 			+ SUniformGridPanel::Slot(1, 6)
 			.HAlign(EHorizontalAlignment::HAlign_Left)
@@ -351,22 +397,13 @@ void FSourceModuleGeneratorEditorModule::AddingModuleDialog()
 				]
 			]
 		]
-		//+ SVerticalBox::Slot()
-		//.Padding(FMargin(2.0f))
-		//.HAlign(EHorizontalAlignment::HAlign_Center)
-		//.FillHeight(0.0f)
-		//[
-		//	SNew(SButton)
-		//	.Text(NSLOCTEXT("SourceModuleGenerator", "Generate", "Generate"))
-		//]
 		+ SVerticalBox::Slot()
 		.Padding(FMargin(2.0f))
 		.HAlign(EHorizontalAlignment::HAlign_Center)
-		.VAlign(EVerticalAlignment::VAlign_Top)
 		.AutoHeight()
 		[
-			SNew(STextBlock)
-			.Text(FText::FromString("abcd1234"))
+			SNew(SButton)
+			.Text(NSLOCTEXT("SourceModuleGenerator", "Generate", "Generate"))
 		]
 	]
 	;
