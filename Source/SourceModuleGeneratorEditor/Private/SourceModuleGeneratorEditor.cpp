@@ -15,6 +15,7 @@
 #include "Widgets/Layout/SUniformGridPanel.h"
 #include "Widgets/Layout/SSpacer.h"
 #include "Widgets/SCanvas.h"
+#include "Widgets/Notifications/SPopUpErrorText.h"
 #include "Interfaces/IPluginManager.h"
 
 DEFINE_LOG_CATEGORY(LogSourceModuleGeneratorEditor)
@@ -68,6 +69,7 @@ void FSourceModuleGeneratorEditorModule::AddingModuleDialog()
 	TSharedPtr<SWindow> MainWindow;
 	TSharedPtr<SEditableTextBox> CopyrightMessage;
 	TSharedPtr<SEditableTextBox> ModuleName;
+	TSharedPtr<SPopupErrorText> PopupErrorText;
 
 	TSharedPtr<STextBlock> CurrentHostType;
 	TArray<TSharedPtr<EHostType::Type>> HostTypeOptionsSource;
@@ -180,6 +182,7 @@ void FSourceModuleGeneratorEditorModule::AddingModuleDialog()
 			.VAlign(EVerticalAlignment::VAlign_Center)
 			[
 				SAssignNew(CopyrightMessage, SEditableTextBox)
+				.HintText(FText::FromString("(Optional)"))
 			]
 			+ SUniformGridPanel::Slot(0, 1)
 			.HAlign(EHorizontalAlignment::HAlign_Right)
@@ -192,6 +195,21 @@ void FSourceModuleGeneratorEditorModule::AddingModuleDialog()
 			.VAlign(EVerticalAlignment::VAlign_Center)
 			[
 				SAssignNew(ModuleName, SEditableTextBox)
+				.ErrorReporting(SAssignNew(PopupErrorText, SPopupErrorText))
+				.OnTextChanged_Lambda
+				(
+					[&ModuleName](const FText& ChangedText) -> void
+					{
+						if (ChangedText.ToString().Contains(" "))
+						{
+							ModuleName->SetError(TEXT("Do not allowed spacer character in module name."));
+						}
+						else
+						{
+							ModuleName->SetError(TEXT(""));
+						}
+					}
+				)
 			]
 			+ SUniformGridPanel::Slot(0, 2)
 			.HAlign(EHorizontalAlignment::HAlign_Right)
@@ -404,9 +422,34 @@ void FSourceModuleGeneratorEditorModule::AddingModuleDialog()
 		[
 			SNew(SButton)
 			.Text(NSLOCTEXT("SourceModuleGenerator", "Generate", "Generate"))
+			.OnClicked_Lambda
+			(
+				[&CopyrightMessage, &ModuleName, &CurrentHostType, &CurrentLoadingPhase, &CurrentModuleImplementType, &SelectedPlugin, &MainWindow]() -> FReply
+				{
+					if (ModuleName->HasError())
+					{
+						return FReply::Handled();
+					}
+
+					FModuleDeclarer ModuleDeclarer;
+					if (CopyrightMessage->GetText().IsEmpty())
+					{
+						ModuleDeclarer.CopyrightMessage = TEXT("Fill out your copyright notice in the Description page of Project Settings.");
+					}
+					else
+					{
+						ModuleDeclarer.CopyrightMessage = CopyrightMessage->GetText().ToString();
+					}
+
+					return FReply::Handled();
+				}
+			)
 		]
 	]
 	;
+
+	PopupErrorText->SetError(TEXT(""));
+
 	if (MainWindow.IsValid())
 	{
 		IMainFrameModule& MainFrameModule = FModuleManager::LoadModuleChecked<IMainFrameModule>(TEXT("MainFrame"));
