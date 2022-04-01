@@ -10,6 +10,7 @@
 #include "Interfaces/IMainFrameModule.h"
 #include "ModuleDescriptor.h"
 #include "ModuleDeclarer.h"
+#include "moduleFile.h"
 #include "Widgets/SWindow.h"
 #include "Widgets/Input/SEditableTextBox.h"
 #include "Widgets/Layout/SUniformGridPanel.h"
@@ -144,6 +145,7 @@ void FSourceModuleGeneratorEditorModule::AddingModuleDialog()
 	TSharedPtr<SComboBox<TSharedPtr<IPlugin>>> SelectedPlugin;
 	TSharedPtr<STextBlock> SelectedPluginText;
 	TSharedPtr<STextBlock> PluginHintText;
+	TSharedPtr<SCheckBox> IsItPluginModule;
 	TArray<TSharedPtr<IPlugin>> PluginsOptionsSource;
 	for (TSharedRef<IPlugin> Item : IPluginManager::Get().GetDiscoveredPlugins())
 	{
@@ -202,7 +204,7 @@ void FSourceModuleGeneratorEditorModule::AddingModuleDialog()
 					{
 						if (ChangedText.ToString().Contains(" "))
 						{
-							ModuleName->SetError(TEXT("Do not allowed spacer character in module name."));
+							ModuleName->SetError(TEXT("Space character is not allowed in module name."));
 						}
 						else
 						{
@@ -354,7 +356,7 @@ void FSourceModuleGeneratorEditorModule::AddingModuleDialog()
 			.HAlign(EHorizontalAlignment::HAlign_Left)
 			.VAlign(EVerticalAlignment::VAlign_Center)
 			[
-				SNew(SCheckBox)
+				SAssignNew(IsItPluginModule, SCheckBox)
 				.IsEnabled(PluginsOptionsSource.Num() != 0)
 				.IsChecked(PluginsOptionsSource.Num() == 0 ? ECheckBoxState::Undetermined : ECheckBoxState::Unchecked)
 				.OnCheckStateChanged_Lambda
@@ -424,13 +426,20 @@ void FSourceModuleGeneratorEditorModule::AddingModuleDialog()
 			.Text(NSLOCTEXT("SourceModuleGenerator", "Generate", "Generate"))
 			.OnClicked_Lambda
 			(
-				[&CopyrightMessage, &ModuleName, &CurrentHostType, &CurrentLoadingPhase, &CurrentModuleImplementType, &SelectedPlugin, &MainWindow]() -> FReply
+				[&CopyrightMessage, &ModuleName, &CurrentHostType, &CurrentLoadingPhase, &CurrentModuleImplementType, &SelectedPlugin, &IsItPluginModule, &MainWindow]() -> FReply
 				{
+					// check if module name is correct.
 					if (ModuleName->HasError())
 					{
 						return FReply::Handled();
 					}
+					if (ModuleName->GetText().IsEmpty())
+					{
+						ModuleName->SetError(TEXT("Module name cannot be empty."));
+						return FReply::Handled();
+					}
 
+					// Build module declarer that needed by generating function.
 					FModuleDeclarer ModuleDeclarer;
 					if (CopyrightMessage->GetText().IsEmpty())
 					{
@@ -439,6 +448,27 @@ void FSourceModuleGeneratorEditorModule::AddingModuleDialog()
 					else
 					{
 						ModuleDeclarer.CopyrightMessage = CopyrightMessage->GetText().ToString();
+					}
+					ModuleDeclarer.ModuleName = ModuleName->GetText().ToString();
+					ModuleDeclarer.HostType = CurrentHostType->GetText().ToString();
+					ModuleDeclarer.LoadingPhase = CurrentLoadingPhase->GetText().ToString();
+					ModuleDeclarer.ModuleImplementType = EModuleImplementType::FromString(*CurrentModuleImplementType->GetText().ToString());
+					if (IsItPluginModule->GetCheckedState() != ECheckBoxState::Checked)
+					{
+						ModuleDeclarer.DescriptorFilePath = FPaths::GetProjectFilePath();
+						ModuleDeclarer.ModuleBuildFilePath = FPaths::Combine(FPaths::GameSourceDir(), ModuleDeclarer.ModuleName, ModuleDeclarer.ModuleName + TEXT(".Build.cs"));
+						ModuleDeclarer.ModuleHeaderFilePath = FPaths::Combine(FPaths::GameSourceDir(), ModuleDeclarer.ModuleName, TEXT("Public"), ModuleDeclarer.ModuleName + TEXT(".h"));
+						ModuleDeclarer.ModuleSourceFilePath = FPaths::Combine(FPaths::GameSourceDir(), ModuleDeclarer.ModuleName, TEXT("Private"), ModuleDeclarer.ModuleName + TEXT(".cpp"));
+						if (GenerateModule(ModuleDeclarer))
+						{
+							UE_LOG(LogSourceModuleGeneratorEditor, Log, TEXT("Generate module successful."));
+							MainWindow->RequestDestroyWindow();
+						}
+						else
+						{
+							UE_LOG(LogSourceModuleGeneratorEditor, Error, TEXT("Generate module failed."));
+							MainWindow->RequestDestroyWindow();
+						}
 					}
 
 					return FReply::Handled();
