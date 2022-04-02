@@ -16,7 +16,7 @@
 // Internal function declares.
 void DeleteGeneratedFiles(const TArray<FString>& InGeneratedFilePaths);
 
-bool GenerateModule(const FModuleDeclarer& InModuleDeclarer)
+bool CreateModuleFiles(const FModuleDeclarer& InModuleDeclarer)
 {
 	// Add module descriptor to project or plugin descriptor.
 	UE_LOG(LogSourceModuleGenerator, Log, TEXT("Adding module descriptor to descriptor file... The expected file path is %s"), *(InModuleDeclarer.DescriptorFilePath));

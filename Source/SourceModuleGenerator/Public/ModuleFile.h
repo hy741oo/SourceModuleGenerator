@@ -4,4 +4,4 @@
 
 struct FModuleDeclarer;
 
-SOURCEMODULEGENERATOR_API bool GenerateModule(const FModuleDeclarer& InModuleDeclarer);
+SOURCEMODULEGENERATOR_API bool CreateModuleFiles(const FModuleDeclarer& InModuleDeclarer);
