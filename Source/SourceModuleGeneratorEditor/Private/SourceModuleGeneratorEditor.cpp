@@ -8,6 +8,7 @@
 #include "ToolMenus.h"
 #include "Modules/ModuleManager.h"
 #include "Interfaces/IMainFrameModule.h"
+#include "ProjectDescriptor.h"
 #include "ModuleDescriptor.h"
 #include "ModuleDeclarer.h"
 #include "moduleFile.h"
@@ -18,6 +19,8 @@
 #include "Widgets/SCanvas.h"
 #include "Widgets/Notifications/SPopUpErrorText.h"
 #include "Interfaces/IPluginManager.h"
+#include "Misc/MessageDialog.h"
+#include "HAL/FileManager.h"
 
 DEFINE_LOG_CATEGORY(LogSourceModuleGeneratorEditor)
 
@@ -142,6 +145,19 @@ void FSourceModuleGeneratorEditorModule::AddingModuleDialog()
 		)
 	;
 
+	TSharedPtr<SComboBox<TSharedPtr<FString>>> ProjectModuleTargetType;
+	TArray<TSharedPtr<FString>> ProjectModuleTargetTypeOptionsSource;
+
+	{
+		TArray<FString> TargetTypes;
+		IFileManager::Get().FindFiles(TargetTypes, *FPaths::GameSourceDir(), TEXT(".Target.cs"));
+		for (const FString& TargetType : TargetTypes)
+		{
+			ProjectModuleTargetTypeOptionsSource.Add(MakeShared<FString>(TargetType));
+		}
+	}
+
+
 	TSharedPtr<SComboBox<TSharedPtr<IPlugin>>> SelectedPlugin;
 	TSharedPtr<STextBlock> SelectedPluginText;
 	TSharedPtr<STextBlock> PluginHintText;
@@ -208,7 +224,14 @@ void FSourceModuleGeneratorEditorModule::AddingModuleDialog()
 						}
 						else
 						{
-							ModuleName->SetError(TEXT(""));
+							if (FModuleManager::Get().ModuleExists(*ChangedText.ToString()))
+							{
+								ModuleName->SetError(TEXT("Module has already existed."));
+							}
+							else
+							{
+								ModuleName->SetError(TEXT(""));
+							}
 						}
 					}
 				)
@@ -428,13 +451,15 @@ void FSourceModuleGeneratorEditorModule::AddingModuleDialog()
 			(
 				[&CopyrightMessage, &ModuleName, &CurrentHostType, &CurrentLoadingPhase, &CurrentModuleImplementType, &SelectedPlugin, &IsItPluginModule, &MainWindow]() -> FReply
 				{
-					// check if module name is correct.
+					// Check whether module name is correct.
 					if (ModuleName->HasError())
 					{
+						UE_LOG(LogSourceModuleGeneratorEditor, Error, TEXT("Module name has error, Abort generating."));
 						return FReply::Handled();
 					}
 					if (ModuleName->GetText().IsEmpty())
 					{
+						UE_LOG(LogSourceModuleGeneratorEditor, Error, TEXT("Module name is empty, Abort generating."));
 						ModuleName->SetError(TEXT("Module name cannot be empty."));
 						return FReply::Handled();
 					}
@@ -455,23 +480,60 @@ void FSourceModuleGeneratorEditorModule::AddingModuleDialog()
 					ModuleDeclarer.ModuleImplementType = EModuleImplementType::FromString(*CurrentModuleImplementType->GetText().ToString());
 					if (IsItPluginModule->GetCheckedState() != ECheckBoxState::Checked)
 					{
+						FProjectDescriptor ProjectDescriptor;
+						FText ProjectLoadFailedReason;
+						if (!ProjectDescriptor.Load(FPaths::GetProjectFilePath(), ProjectLoadFailedReason))
+						{
+							UE_LOG(LogSourceModuleGeneratorEditor, Error, TEXT("Load project file failed, reason is: %s, abort generating."), *ProjectLoadFailedReason.ToString());
+							return FReply::Handled();
+						}
+						else
+						{
+							if (ProjectDescriptor.Modules.Num() == 0)
+							{
+								UE_LOG(LogSourceModuleGeneratorEditor, Error, TEXT("There is no primary game module in project, please add \"New C++ Class...\" before add new module in project."));
+								FMessageDialog::Open(EAppMsgType::Ok, FText::FromString(TEXT("There is no primary game module in project, please add \"New C++ Class...\" before add new module in project.")));
+								return FReply::Handled();
+							}
+						}
 						ModuleDeclarer.DescriptorFilePath = FPaths::GetProjectFilePath();
 						ModuleDeclarer.ModuleBuildFilePath = FPaths::Combine(FPaths::GameSourceDir(), ModuleDeclarer.ModuleName, ModuleDeclarer.ModuleName + TEXT(".Build.cs"));
 						ModuleDeclarer.ModuleHeaderFilePath = FPaths::Combine(FPaths::GameSourceDir(), ModuleDeclarer.ModuleName, TEXT("Public"), ModuleDeclarer.ModuleName + TEXT(".h"));
 						ModuleDeclarer.ModuleSourceFilePath = FPaths::Combine(FPaths::GameSourceDir(), ModuleDeclarer.ModuleName, TEXT("Private"), ModuleDeclarer.ModuleName + TEXT(".cpp"));
-						if (GenerateModule(ModuleDeclarer))
-						{
-							UE_LOG(LogSourceModuleGeneratorEditor, Log, TEXT("Generate module successful."));
-							MainWindow->RequestDestroyWindow();
-						}
-						else
-						{
-							UE_LOG(LogSourceModuleGeneratorEditor, Error, TEXT("Generate module failed."));
-							MainWindow->RequestDestroyWindow();
-						}
+					}
+					else
+					{
+						TSharedPtr<IPlugin> ThePlugin = SelectedPlugin->GetSelectedItem();
+						ModuleDeclarer.DescriptorFilePath = ThePlugin->GetDescriptorFileName();
+						ModuleDeclarer.ModuleBuildFilePath = FPaths::Combine(ThePlugin->GetBaseDir(), TEXT("Source"), ModuleDeclarer.ModuleName, ModuleDeclarer.ModuleName + TEXT(".Build.cs"));
+						ModuleDeclarer.ModuleHeaderFilePath = FPaths::Combine(ThePlugin->GetBaseDir(), TEXT("Source"), ModuleDeclarer.ModuleName, TEXT("Public"), ModuleDeclarer.ModuleName + TEXT(".h"));
+						ModuleDeclarer.ModuleSourceFilePath = FPaths::Combine(ThePlugin->GetBaseDir(), TEXT("Source"), ModuleDeclarer.ModuleName, TEXT("Private"), ModuleDeclarer.ModuleName + TEXT(".cpp"));
+					}
+
+					if (!CreateModuleFiles(ModuleDeclarer))
+					{
+						UE_LOG(LogSourceModuleGeneratorEditor, Error, TEXT("Generate module failed, Abort generating."));
+						MainWindow->RequestDestroyWindow();
+						return FReply::Handled();
+					}
+					else
+					{
+						UE_LOG(LogSourceModuleGeneratorEditor, Log, TEXT("Generate module successful."));
 					}
 
 					return FReply::Handled();
+				}
+			)
+		]
+		+ SVerticalBox::Slot()
+		[
+			SNew(SComboBox<TSharedPtr<FString>>)
+			.OptionsSource(&ProjectModuleTargetTypeOptionsSource)
+			.OnGenerateWidget_Lambda
+			(
+				[](const TSharedPtr<FString>& Value) -> TSharedRef<SWidget>
+				{
+					return SNew(STextBlock).Text(FText::FromString(*Value));
 				}
 			)
 		]
