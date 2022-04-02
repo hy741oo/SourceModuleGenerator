@@ -48,17 +48,6 @@ bool CreateModuleFiles(const FModuleDeclarer& InModuleDeclarer)
 	if (JsonDocument.HasMember("Modules"))
 	{
 		rapidjson::Value& ModuleList = JsonDocument["Modules"];
-		for (rapidjson::Value& ModuleObject : ModuleList.GetArray())
-		{
-			if (ModuleObject.HasMember("Name"))
-			{
-				if (ModuleObject["Name"] == TCHAR_TO_UTF8(*(InModuleDeclarer.ModuleName)))
-				{
-					UE_LOG(LogSourceModuleGenerator, Error, TEXT("Module %s has already been added to Descriptor file, Abort generating."), *(InModuleDeclarer.ModuleName));
-					return false;
-				}
-			}
-		}
 		ModuleList.PushBack(ModuleDescriptor, JsonDocument.GetAllocator());
 	}
 	else
