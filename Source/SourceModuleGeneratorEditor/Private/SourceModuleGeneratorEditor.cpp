@@ -18,6 +18,7 @@
 #include "Widgets/Layout/SSpacer.h"
 #include "Widgets/SCanvas.h"
 #include "Widgets/Notifications/SPopUpErrorText.h"
+#include "Widgets/Input/SComboButton.h"
 #include "Interfaces/IPluginManager.h"
 #include "Misc/MessageDialog.h"
 #include "HAL/FileManager.h"
@@ -145,8 +146,10 @@ void FSourceModuleGeneratorEditorModule::AddingModuleDialog()
 		)
 	;
 
-	TSharedPtr<SComboBox<TSharedPtr<FString>>> ProjectModuleTargetType;
+	TSharedPtr<SComboButton> ProjectModuleTargetType;
+	TSharedPtr<STextBlock> ProjectModuleTargetTypeText;
 	TArray<TSharedPtr<FString>> ProjectModuleTargetTypeOptionsSource;
+	TArray<TSharedPtr<SCheckBox>> ProjectModuleTargetTypeCheckBoxes;
 
 	{
 		TArray<FString> TargetTypes;
@@ -156,6 +159,14 @@ void FSourceModuleGeneratorEditorModule::AddingModuleDialog()
 			ProjectModuleTargetTypeOptionsSource.Add(MakeShared<FString>(TargetType));
 		}
 	}
+	ProjectModuleTargetTypeOptionsSource.Sort
+	(
+		[](const TSharedPtr<FString>& A, const TSharedPtr<FString>& B) -> bool
+		{
+			return *A < *B;
+		}
+	)
+	;
 
 
 	TSharedPtr<SComboBox<TSharedPtr<IPlugin>>> SelectedPlugin;
@@ -371,11 +382,59 @@ void FSourceModuleGeneratorEditorModule::AddingModuleDialog()
 			.HAlign(EHorizontalAlignment::HAlign_Right)
 			.VAlign(EVerticalAlignment::VAlign_Center)
 			[
+				SAssignNew(ProjectModuleTargetTypeText, STextBlock)
+				.IsEnabled(ProjectModuleTargetTypeOptionsSource.Num() != 0)
+				.Text(NSLOCTEXT("SourceModuleGeneratorEditor", "TargetType", "Target Type: "))
+			]
+			+ SUniformGridPanel::Slot(1, 5)
+			.HAlign(EHorizontalAlignment::HAlign_Left)
+			.VAlign(EVerticalAlignment::VAlign_Center)
+			[
+				SAssignNew(ProjectModuleTargetType, SComboButton)
+				.IsEnabled(ProjectModuleTargetTypeOptionsSource.Num() != 0)
+				.ContentPadding(FMargin(2.0f))
+				.ButtonContent()
+				[
+					SNew(STextBlock)
+					.Text(NSLOCTEXT("SourceModuleGeneratorEditor", "TargetTypeList", "Target Type List"))
+				]
+				.OnGetMenuContent_Lambda
+				(
+					[&ProjectModuleTargetTypeOptionsSource, &ProjectModuleTargetTypeCheckBoxes]() -> TSharedRef<SWidget>
+					{
+						TSharedPtr<SVerticalBox> MainVerticalBox;
+						SAssignNew(MainVerticalBox, SVerticalBox);
+						for (const TSharedPtr<FString>& Item : ProjectModuleTargetTypeOptionsSource)
+						{
+							TSharedPtr<SCheckBox> TempCheckBox;
+							MainVerticalBox->AddSlot()
+							.Padding(FMargin(2.0f))
+							.HAlign(EHorizontalAlignment::HAlign_Left)
+							.VAlign(EVerticalAlignment::VAlign_Center)
+							[
+									SAssignNew(TempCheckBox, SCheckBox)
+									.IsChecked(Item->Contains("Editor") ? ECheckBoxState::Checked : ECheckBoxState::Unchecked)
+									[
+										SNew(STextBlock)
+										.Text(FText::FromString(*Item))
+									]
+							]
+							;
+							ProjectModuleTargetTypeCheckBoxes.Add(TempCheckBox);
+						}
+						return MainVerticalBox.ToSharedRef();
+					}
+				)
+			]
+			+ SUniformGridPanel::Slot(0, 6)
+			.HAlign(EHorizontalAlignment::HAlign_Right)
+			.VAlign(EVerticalAlignment::VAlign_Center)
+			[
 				SNew(STextBlock)
 				.IsEnabled(PluginsOptionsSource.Num() != 0)
 				.Text(NSLOCTEXT("SourceModuleGeneratorEditor", "Isthisapluginmodule", "Is this a plugin module: "))
 			]
-			+ SUniformGridPanel::Slot(1, 5)
+			+ SUniformGridPanel::Slot(1, 6)
 			.HAlign(EHorizontalAlignment::HAlign_Left)
 			.VAlign(EVerticalAlignment::VAlign_Center)
 			[
@@ -384,14 +443,16 @@ void FSourceModuleGeneratorEditorModule::AddingModuleDialog()
 				.IsChecked(PluginsOptionsSource.Num() == 0 ? ECheckBoxState::Undetermined : ECheckBoxState::Unchecked)
 				.OnCheckStateChanged_Lambda
 				(
-					[&PluginHintText, &SelectedPlugin](const ECheckBoxState& State) -> void
+					[&PluginHintText, &SelectedPlugin, &ProjectModuleTargetTypeText, &ProjectModuleTargetType](const ECheckBoxState& State) -> void
 					{
 						PluginHintText->SetEnabled(State == ECheckBoxState::Checked);
 						SelectedPlugin->SetEnabled(State == ECheckBoxState::Checked);
+						ProjectModuleTargetTypeText->SetEnabled(!(State == ECheckBoxState::Checked));
+						ProjectModuleTargetType->SetEnabled(!(State == ECheckBoxState::Checked));
 					}
 				)
 			]
-			+ SUniformGridPanel::Slot(0, 6)
+			+ SUniformGridPanel::Slot(0, 7)
 			.HAlign(EHorizontalAlignment::HAlign_Right)
 			.VAlign(EVerticalAlignment::VAlign_Center)
 			[
@@ -399,7 +460,7 @@ void FSourceModuleGeneratorEditorModule::AddingModuleDialog()
 				.IsEnabled(false)
 				.Text(NSLOCTEXT("SourceModuleGeneratorEditor", "WhichPlugin", "Which plugin: "))
 			]
-			+ SUniformGridPanel::Slot(1, 6)
+			+ SUniformGridPanel::Slot(1, 7)
 			.HAlign(EHorizontalAlignment::HAlign_Left)
 			.VAlign(EVerticalAlignment::VAlign_Center)
 			[
@@ -522,18 +583,6 @@ void FSourceModuleGeneratorEditorModule::AddingModuleDialog()
 					}
 
 					return FReply::Handled();
-				}
-			)
-		]
-		+ SVerticalBox::Slot()
-		[
-			SNew(SComboBox<TSharedPtr<FString>>)
-			.OptionsSource(&ProjectModuleTargetTypeOptionsSource)
-			.OnGenerateWidget_Lambda
-			(
-				[](const TSharedPtr<FString>& Value) -> TSharedRef<SWidget>
-				{
-					return SNew(STextBlock).Text(FText::FromString(*Value));
 				}
 			)
 		]
