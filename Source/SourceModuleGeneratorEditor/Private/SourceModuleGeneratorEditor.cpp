@@ -149,7 +149,7 @@ void FSourceModuleGeneratorEditorModule::AddingModuleDialog()
 	TSharedPtr<SComboButton> ProjectModuleTargetType;
 	TSharedPtr<STextBlock> ProjectModuleTargetTypeText;
 	TArray<TSharedPtr<FString>> ProjectModuleTargetTypeOptionsSource;
-	TArray<TSharedPtr<SCheckBox>> ProjectModuleTargetTypeCheckBoxes;
+	TMap<TSharedPtr<SCheckBox>, FString> ProjectModuleTargetTypeCheckBoxes;
 
 	{
 		TArray<FString> TargetTypes;
@@ -407,6 +407,7 @@ void FSourceModuleGeneratorEditorModule::AddingModuleDialog()
 						for (const TSharedPtr<FString>& Item : ProjectModuleTargetTypeOptionsSource)
 						{
 							TSharedPtr<SCheckBox> TempCheckBox;
+							FString SimplifyTargetTypeName = Item->Left(Item->Find(TEXT(".")));
 							MainVerticalBox->AddSlot()
 							.Padding(FMargin(2.0f))
 							.HAlign(EHorizontalAlignment::HAlign_Left)
@@ -416,11 +417,11 @@ void FSourceModuleGeneratorEditorModule::AddingModuleDialog()
 									.IsChecked(Item->Contains("Editor") ? ECheckBoxState::Checked : ECheckBoxState::Unchecked)
 									[
 										SNew(STextBlock)
-										.Text(FText::FromString(*Item))
+										.Text(FText::FromString(SimplifyTargetTypeName))
 									]
 							]
 							;
-							ProjectModuleTargetTypeCheckBoxes.Add(TempCheckBox);
+							ProjectModuleTargetTypeCheckBoxes.Add(TempCheckBox, *Item);
 						}
 						return MainVerticalBox.ToSharedRef();
 					}
@@ -510,8 +511,18 @@ void FSourceModuleGeneratorEditorModule::AddingModuleDialog()
 			.Text(NSLOCTEXT("SourceModuleGenerator", "Generate", "Generate"))
 			.OnClicked_Lambda
 			(
-				[&CopyrightMessage, &ModuleName, &CurrentHostType, &CurrentLoadingPhase, &CurrentModuleImplementType, &SelectedPlugin, &IsItPluginModule, &MainWindow]() -> FReply
+				[&CopyrightMessage, &ModuleName, &CurrentHostType, &CurrentLoadingPhase, &CurrentModuleImplementType, &SelectedPlugin, &IsItPluginModule, &MainWindow, &ProjectModuleTargetTypeCheckBoxes]() -> FReply
 				{
+					UE_LOG(LogTemp, Warning, TEXT("Selected target type is: "));
+					for (const TPair<TSharedPtr<SCheckBox>, FString>& Item : ProjectModuleTargetTypeCheckBoxes)
+					{
+						if (Item.Key->GetCheckedState() == ECheckBoxState::Checked)
+						{
+							UE_LOG(LogTemp, Warning, TEXT("%s"), *Item.Value);
+						}
+					}
+					return FReply::Handled();
+
 					// Check whether module name is correct.
 					if (ModuleName->HasError())
 					{
