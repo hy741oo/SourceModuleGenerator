@@ -48,5 +48,8 @@ struct FModuleDeclarer
 	FString LoadingPhase;
 
 	EModuleImplementType::Type ModuleImplementType = EModuleImplementType::NormalModule;
+
+	// Array that saving project module target type file path.
+	TArray<FString> ProjectModuleTargetTypeFilePaths;
 };
 

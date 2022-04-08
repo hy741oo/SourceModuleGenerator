@@ -513,16 +513,6 @@ void FSourceModuleGeneratorEditorModule::AddingModuleDialog()
 			(
 				[&CopyrightMessage, &ModuleName, &CurrentHostType, &CurrentLoadingPhase, &CurrentModuleImplementType, &SelectedPlugin, &IsItPluginModule, &MainWindow, &ProjectModuleTargetTypeCheckBoxes]() -> FReply
 				{
-					UE_LOG(LogTemp, Warning, TEXT("Selected target type is: "));
-					for (const TPair<TSharedPtr<SCheckBox>, FString>& Item : ProjectModuleTargetTypeCheckBoxes)
-					{
-						if (Item.Key->GetCheckedState() == ECheckBoxState::Checked)
-						{
-							UE_LOG(LogTemp, Warning, TEXT("%s"), *Item.Value);
-						}
-					}
-					return FReply::Handled();
-
 					// Check whether module name is correct.
 					if (ModuleName->HasError())
 					{
@@ -572,6 +562,14 @@ void FSourceModuleGeneratorEditorModule::AddingModuleDialog()
 						ModuleDeclarer.ModuleBuildFilePath = FPaths::Combine(FPaths::GameSourceDir(), ModuleDeclarer.ModuleName, ModuleDeclarer.ModuleName + TEXT(".Build.cs"));
 						ModuleDeclarer.ModuleHeaderFilePath = FPaths::Combine(FPaths::GameSourceDir(), ModuleDeclarer.ModuleName, TEXT("Public"), ModuleDeclarer.ModuleName + TEXT(".h"));
 						ModuleDeclarer.ModuleSourceFilePath = FPaths::Combine(FPaths::GameSourceDir(), ModuleDeclarer.ModuleName, TEXT("Private"), ModuleDeclarer.ModuleName + TEXT(".cpp"));
+
+						for (const TPair<TSharedPtr<SCheckBox>, FString>& Item : ProjectModuleTargetTypeCheckBoxes)
+						{
+							if (Item.Key->GetCheckedState() == ECheckBoxState::Checked)
+							{
+								ModuleDeclarer.ProjectModuleTargetTypeFilePaths.Add(FPaths::Combine(FPaths::GameSourceDir(), Item.Value));
+							}
+						}
 					}
 					else
 					{

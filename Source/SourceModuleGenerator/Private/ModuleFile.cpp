@@ -178,6 +178,11 @@ bool CreateModuleFiles(const FModuleDeclarer& InModuleDeclarer)
 		return false;
 	}
 
+	for (const FString& Item : InModuleDeclarer.ProjectModuleTargetTypeFilePaths)
+	{
+		UE_LOG(LogSourceModuleGenerator, Log, TEXT("Adding module name to project target file %s... The expected file path is %s"), *Item.Left(Item.Find(TEXT("."))), *Item);
+	}
+
 	return true;
 }
 
