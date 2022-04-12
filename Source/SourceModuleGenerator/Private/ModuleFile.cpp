@@ -181,6 +181,60 @@ bool CreateModuleFiles(const FModuleDeclarer& InModuleDeclarer)
 	for (const FString& Item : InModuleDeclarer.ProjectModuleTargetTypeFilePaths)
 	{
 		UE_LOG(LogSourceModuleGenerator, Log, TEXT("Adding module name to project target file %s... The expected file path is %s"), *Item.Left(Item.Find(TEXT("."))), *Item);
+		TArray<FString> Result;
+		if (!FFileHelper::LoadFileToStringArray(Result, *Item))
+		{
+			UE_LOG(LogSourceModuleGenerator, Error, TEXT("Load project target file failed."));
+			::DeleteGeneratedFiles(GeneratedFilePaths);
+			return false;
+		}
+		bool bIsFoundKeyString = false;
+		for (FString& Line : Result)
+		{
+			if (Line.Contains(TEXT("ExtraModuleNames.AddRange( new string[] {")))
+			{
+				FString LeftString, RightString;
+				if (!Line.Split(TEXT("\""), &LeftString, &RightString, ESearchCase::IgnoreCase, ESearchDir::FromEnd))
+				{
+					UE_LOG(LogSourceModuleGenerator, Error, TEXT("Split string failed."));
+					::DeleteGeneratedFiles(GeneratedFilePaths);
+					return false;
+				}
+				Line = LeftString + TEXT("\", \"") + InModuleDeclarer.ModuleName + TEXT("\"") + RightString;
+				bIsFoundKeyString = true;
+			}
+		}
+		if (!bIsFoundKeyString)
+		{
+			int32 Index = 0;
+			for (; Index < Result.Num(); ++Index)
+			{
+				int32 InsertIndex = Result[Index].Find(TEXT("base(Target)"));
+				if (INDEX_NONE == InsertIndex)
+				{
+					continue;
+				}
+				else
+				{
+					Result.Insert(TEXT(""), Index + 2);
+					Result.Insert(TEXT("\t\tExtraModuleNames.AddRange( new string[] { \"") + InModuleDeclarer.ModuleName + TEXT("\" } );"), Index + 2);
+					Result.Insert(TEXT("\t\t// Add new module by Source Module Generator."), Index + 2);
+					break;
+				}
+			}
+			if (Index == Result.Num())
+			{
+				UE_LOG(LogSourceModuleGenerator, Error, TEXT("Find key string \"base(Target)\" failed."));
+				::DeleteGeneratedFiles(GeneratedFilePaths);
+				return false;
+			}
+		}
+		if (!FFileHelper::SaveStringArrayToFile(Result, *Item))
+		{
+			UE_LOG(LogSourceModuleGenerator, Error, TEXT("Save file failed."));
+			::DeleteGeneratedFiles(GeneratedFilePaths);
+			return false;
+		}
 	}
 
 	return true;

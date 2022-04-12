@@ -167,6 +167,27 @@ void FSourceModuleGeneratorEditorModule::AddingModuleDialog()
 		}
 	)
 	;
+	TSharedPtr<SVerticalBox> MainVerticalBox;
+	SAssignNew(MainVerticalBox, SVerticalBox);
+	for (const TSharedPtr<FString>& Item : ProjectModuleTargetTypeOptionsSource)
+	{
+		TSharedPtr<SCheckBox> TempCheckBox;
+		FString SimplifyTargetTypeName = Item->Left(Item->Find(TEXT(".")));
+		MainVerticalBox->AddSlot()
+		.Padding(FMargin(2.0f))
+		.HAlign(EHorizontalAlignment::HAlign_Left)
+		.VAlign(EVerticalAlignment::VAlign_Center)
+		[
+				SAssignNew(TempCheckBox, SCheckBox)
+				.IsChecked(Item->Contains("Editor") ? ECheckBoxState::Checked : ECheckBoxState::Unchecked)
+				[
+					SNew(STextBlock)
+					.Text(FText::FromString(SimplifyTargetTypeName))
+				]
+		]
+		;
+		ProjectModuleTargetTypeCheckBoxes.Add(TempCheckBox, *Item);
+	}
 
 
 	TSharedPtr<SComboBox<TSharedPtr<IPlugin>>> SelectedPlugin;
@@ -398,34 +419,10 @@ void FSourceModuleGeneratorEditorModule::AddingModuleDialog()
 					SNew(STextBlock)
 					.Text(NSLOCTEXT("SourceModuleGeneratorEditor", "TargetTypeList", "Target Type List"))
 				]
-				.OnGetMenuContent_Lambda
-				(
-					[&ProjectModuleTargetTypeOptionsSource, &ProjectModuleTargetTypeCheckBoxes]() -> TSharedRef<SWidget>
-					{
-						TSharedPtr<SVerticalBox> MainVerticalBox;
-						SAssignNew(MainVerticalBox, SVerticalBox);
-						for (const TSharedPtr<FString>& Item : ProjectModuleTargetTypeOptionsSource)
-						{
-							TSharedPtr<SCheckBox> TempCheckBox;
-							FString SimplifyTargetTypeName = Item->Left(Item->Find(TEXT(".")));
-							MainVerticalBox->AddSlot()
-							.Padding(FMargin(2.0f))
-							.HAlign(EHorizontalAlignment::HAlign_Left)
-							.VAlign(EVerticalAlignment::VAlign_Center)
-							[
-									SAssignNew(TempCheckBox, SCheckBox)
-									.IsChecked(Item->Contains("Editor") ? ECheckBoxState::Checked : ECheckBoxState::Unchecked)
-									[
-										SNew(STextBlock)
-										.Text(FText::FromString(SimplifyTargetTypeName))
-									]
-							]
-							;
-							ProjectModuleTargetTypeCheckBoxes.Add(TempCheckBox, *Item);
-						}
-						return MainVerticalBox.ToSharedRef();
-					}
-				)
+				.MenuContent()
+				[
+					MainVerticalBox.ToSharedRef()
+				]
 			]
 			+ SUniformGridPanel::Slot(0, 6)
 			.HAlign(EHorizontalAlignment::HAlign_Right)
