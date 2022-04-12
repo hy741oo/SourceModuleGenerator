@@ -27,7 +27,9 @@ public class SourceModuleGeneratorEditor : ModuleRules
 				"MainFrame",
 				"InputCore",
 				"Projects",
-				"SourceModuleGenerator"
+				"SourceModuleGenerator",
+				"GameProjectGeneration",
+				"HotReload"
 				// ... add private dependencies that you statically link with here ...
 			}
 			);
