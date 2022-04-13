@@ -591,22 +591,11 @@ void FSourceModuleGeneratorEditorModule::AddingModuleDialog()
 						UE_LOG(LogSourceModuleGeneratorEditor, Log, TEXT("Generate module files successful, compiling code..."));
 						if (!GameProjectUtils::BuildCodeProject(FPaths::GetProjectFilePath()))
 						{
-							UE_LOG(LogSourceModuleGeneratorEditor, Error, TEXT("Compile code FAILED."));
+							UE_LOG(LogSourceModuleGeneratorEditor, Error, TEXT("COMPILE FAILED"));
 							return FReply::Handled();
 						}
-						UE_LOG(LogSourceModuleGeneratorEditor, Log, TEXT("Compile code SUCCESSFULE, generate module end."));
-						UE_LOG(LogSourceModuleGeneratorEditor, Log, TEXT("Start hot-reload..."));
-						ECompilationResult::Type CompilationResult = IHotReloadModule::Get().DoHotReloadFromEditor(EHotReloadFlags::WaitForCompletion);
-						if (ECompilationResult::Succeeded == CompilationResult)
-						{
-							UE_LOG(LogSourceModuleGeneratorEditor, Log, TEXT("Hot Reload successful."));
-							return FReply::Handled();
-						}
-						else
-						{
-							UE_LOG(LogSourceModuleGeneratorEditor, Error, TEXT("Hot reload failed, fail reason is: %s"), *ECompilationResult::ToString(CompilationResult));
-							return FReply::Handled();
-						}
+						UE_LOG(LogSourceModuleGeneratorEditor, Log, TEXT("COMPILE MODULE SUCCESSFUL, generate module end."));
+						return FReply::Handled();
 					}
 				}
 			)
