@@ -23,8 +23,6 @@
 #include "Misc/MessageDialog.h"
 #include "HAL/FileManager.h"
 #include "GameProjectUtils.h"
-#include "IHotReload.h"
-#include "Misc/CompilationResult.h"
 
 DEFINE_LOG_CATEGORY(LogSourceModuleGeneratorEditor)
 
@@ -595,6 +593,11 @@ void FSourceModuleGeneratorEditorModule::AddingModuleDialog()
 							return FReply::Handled();
 						}
 						UE_LOG(LogSourceModuleGeneratorEditor, Log, TEXT("COMPILE MODULE SUCCESSFUL, generate module end."));
+						UE_LOG(LogSourceModuleGeneratorEditor, Log, TEXT("Loading generated module..."));
+						FModuleManager::Get().LoadModuleChecked(FName(*ModuleDeclarer.ModuleName));
+						UE_LOG(LogSourceModuleGeneratorEditor, Log, TEXT("Loading generated module DONE."));
+						FMessageDialog::Open(EAppMsgType::Ok, FText::FromString(TEXT("Generate New Module Successful.")));
+						MainWindow->RequestDestroyWindow();
 						return FReply::Handled();
 					}
 				}
