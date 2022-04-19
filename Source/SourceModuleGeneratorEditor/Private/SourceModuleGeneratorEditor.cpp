@@ -578,6 +578,7 @@ void FSourceModuleGeneratorEditorModule::AddingModuleDialog()
 						ModuleDeclarer.ModuleSourceFilePath = FPaths::Combine(ThePlugin->GetBaseDir(), TEXT("Source"), ModuleDeclarer.ModuleName, TEXT("Private"), ModuleDeclarer.ModuleName + TEXT(".cpp"));
 					}
 
+					// Create files the module needing.
 					if (!CreateModuleFiles(ModuleDeclarer))
 					{
 						UE_LOG(LogSourceModuleGeneratorEditor, Error, TEXT("Generate module failed, Abort generating."));
@@ -587,18 +588,34 @@ void FSourceModuleGeneratorEditorModule::AddingModuleDialog()
 					else
 					{
 						UE_LOG(LogSourceModuleGeneratorEditor, Log, TEXT("Generate module files successful, compiling code..."));
+
+						// Compiling project.
 						if (!GameProjectUtils::BuildCodeProject(FPaths::GetProjectFilePath()))
 						{
 							UE_LOG(LogSourceModuleGeneratorEditor, Error, TEXT("COMPILE FAILED"));
 							return FReply::Handled();
 						}
 						UE_LOG(LogSourceModuleGeneratorEditor, Log, TEXT("COMPILE MODULE SUCCESSFUL, generate module end."));
+
+						// Load new module.
 						UE_LOG(LogSourceModuleGeneratorEditor, Log, TEXT("Loading generated module..."));
-						FModuleManager::Get().LoadModuleChecked(FName(*ModuleDeclarer.ModuleName));
-						UE_LOG(LogSourceModuleGeneratorEditor, Log, TEXT("Loading generated module DONE."));
-						FMessageDialog::Open(EAppMsgType::Ok, FText::FromString(TEXT("Generate New Module Successful.")));
-						MainWindow->RequestDestroyWindow();
-						return FReply::Handled();
+						EModuleLoadResult ModuleLoadResult;
+						FModuleManager::Get().LoadModuleWithFailureReason(FName(*ModuleDeclarer.ModuleName), ModuleLoadResult);
+						if (ModuleLoadResult == EModuleLoadResult::Success)
+						{
+							UE_LOG(LogSourceModuleGeneratorEditor, Log, TEXT("Loading generated module DONE."));
+							FMessageDialog::Open(EAppMsgType::Ok, FText::FromString(TEXT("Generate new module successful.")));
+							MainWindow->RequestDestroyWindow();
+							return FReply::Handled();
+						}
+						else
+						{
+							UE_LOG(LogSourceModuleGeneratorEditor, Warning, TEXT("Loading generated module FAILED, Please restart project to load module correctly."))
+							UE_LOG(LogSourceModuleGeneratorEditor, Warning, TEXT("Failure reason: %d"), (int)ModuleLoadResult);
+							FMessageDialog::Open(EAppMsgType::Ok, FText::FromString(TEXT("Loading generated module FAILED, Please restart project to load module correctly.")));
+							MainWindow->RequestDestroyWindow();
+							return FReply::Handled();
+						}
 					}
 				}
 			)
