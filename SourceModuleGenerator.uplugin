@@ -1,7 +1,7 @@
 {
 	"FileVersion": 3,
 	"Version": 1,
-	"VersionName": "0.9.0",
+	"VersionName": "0.9.1",
 	"FriendlyName": "SourceModuleGenerator",
 	"Description": "Simple way to generate c++ source code module.",
 	"Category": "SourceModule",
