@@ -29,6 +29,7 @@ public class SourceModuleGeneratorEditor : ModuleRules
 				"Projects",
 				"SourceModuleGenerator",
 				"GameProjectGeneration",
+				"HotReload"
 				// ... add private dependencies that you statically link with here ...
 			}
 			);

@@ -23,6 +23,7 @@
 #include "Misc/MessageDialog.h"
 #include "HAL/FileManager.h"
 #include "GameProjectUtils.h"
+#include "IHotReload.h"
 
 DEFINE_LOG_CATEGORY(LogSourceModuleGeneratorEditor)
 
@@ -589,13 +590,22 @@ void FSourceModuleGeneratorEditorModule::AddingModuleDialog()
 					{
 						UE_LOG(LogSourceModuleGeneratorEditor, Log, TEXT("Generate module files successful, compiling code..."));
 
-						// Compiling project.
-						if (!GameProjectUtils::BuildCodeProject(FPaths::GetProjectFilePath()))
+						// Compiling and hot reloading project.
+						ECompilationResult::Type CompilationResult = IHotReloadModule::Get().DoHotReloadFromEditor(EHotReloadFlags::WaitForCompletion);
+						if (CompilationResult != ECompilationResult::Succeeded)
 						{
-							UE_LOG(LogSourceModuleGeneratorEditor, Error, TEXT("COMPILE FAILED"));
+							UE_LOG(LogSourceModuleGeneratorEditor, Error, TEXT("Compile and hot reload failed, Fail reason: %s"), ECompilationResult::ToString(CompilationResult));
 							return FReply::Handled();
 						}
-						UE_LOG(LogSourceModuleGeneratorEditor, Log, TEXT("COMPILE MODULE SUCCESSFUL, generate module end."));
+						UE_LOG(LogSourceModuleGeneratorEditor, Log, TEXT("COMPILE AND HOT RELOAD SUCCESSFUL."));
+
+						// Add binary directory that contains the module to module manager if it is a plugin module.
+						UE_LOG(LogSourceModuleGeneratorEditor, Log, TEXT("Add binary directory to module manager..."));
+						if (IsItPluginModule->GetCheckedState() == ECheckBoxState::Checked)
+						{
+							FModuleManager::Get().AddBinariesDirectory(*FPaths::Combine(SelectedPlugin->GetSelectedItem()->GetBaseDir(), TEXT("Binaries")), true);
+						}
+						UE_LOG(LogSourceModuleGeneratorEditor, Log, TEXT("Add binary directory to module manager done."));
 
 						// Load new module.
 						UE_LOG(LogSourceModuleGeneratorEditor, Log, TEXT("Loading generated module..."));
@@ -603,7 +613,7 @@ void FSourceModuleGeneratorEditorModule::AddingModuleDialog()
 						FModuleManager::Get().LoadModuleWithFailureReason(FName(*ModuleDeclarer.ModuleName), ModuleLoadResult);
 						if (ModuleLoadResult == EModuleLoadResult::Success)
 						{
-							UE_LOG(LogSourceModuleGeneratorEditor, Log, TEXT("Loading generated module DONE."));
+							UE_LOG(LogSourceModuleGeneratorEditor, Log, TEXT("Loading generated module DONE. Generate source module END."));
 							FMessageDialog::Open(EAppMsgType::Ok, FText::FromString(TEXT("Generate new module successful.")));
 							MainWindow->RequestDestroyWindow();
 							return FReply::Handled();
