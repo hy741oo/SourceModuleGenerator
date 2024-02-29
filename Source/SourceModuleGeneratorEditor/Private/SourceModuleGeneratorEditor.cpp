@@ -613,6 +613,13 @@ void FSourceModuleGeneratorEditorModule::AddingModuleDialog()
 						FModuleManager::Get().LoadModuleWithFailureReason(FName(*ModuleDeclarer.ModuleName), ModuleLoadResult);
 						if (ModuleLoadResult == EModuleLoadResult::Success)
 						{
+							// Refresh project.
+							FText FailReason, FailLog;
+							if(!FGameProjectGenerationModule::Get().UpdateCodeProject(FailReason, FailLog))
+							{
+								UE_LOG(LogSourceModuleGeneratorEditor, Warning, TEXT("Refresh project FAILED. Fail Reason: %s\nFail Log: %s"), *FailReason.ToString(), *FailLog.ToString());
+							}
+
 							UE_LOG(LogSourceModuleGeneratorEditor, Log, TEXT("Loading generated module DONE. Generate source module END."));
 							FMessageDialog::Open(EAppMsgType::Ok, FText::FromString(TEXT("Generate new module successful.")));
 							MainWindow->RequestDestroyWindow();
@@ -626,6 +633,7 @@ void FSourceModuleGeneratorEditorModule::AddingModuleDialog()
 							MainWindow->RequestDestroyWindow();
 							return FReply::Handled();
 						}
+
 					}
 				}
 			)
