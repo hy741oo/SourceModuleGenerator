@@ -552,9 +552,40 @@ void FSourceModuleGeneratorEditorModule::AddingModuleDialog()
 						{
 							if (ProjectDescriptor.Modules.Num() == 0)
 							{
-								UE_LOG(LogSourceModuleGeneratorEditor, Error, TEXT("There is no primary game module in project, please add \"New C++ Class...\" before add new module in project."));
-								FMessageDialog::Open(EAppMsgType::Ok, FText::FromString(TEXT("There is no primary game module in project, please add \"New C++ Class...\" before add new module in project.")));
-								return FReply::Handled();
+								EAppReturnType::Type AppReturnType = FMessageDialog::Open(EAppMsgType::YesNo, EAppReturnType::No, FText::FromString(TEXT("There is no primary game module in project.\n\nDo you want to create primary game module?\n\nNo will cancel generating new module.")));
+								if (AppReturnType == EAppReturnType::No)
+								{
+									UE_LOG(LogSourceModuleGeneratorEditor, Error, TEXT("There is no primary game module in the project, Abort generating."));
+									return FReply::Handled();
+								}
+								else
+								{
+									UE_LOG(LogSourceModuleGeneratorEditor, Log, TEXT("Generating basic source code..."));
+									TArray<FString> CreatedFiles;
+									FText FailReason;
+									if (!GameProjectUtils::GenerateBasicSourceCode(CreatedFiles, FailReason))
+									{
+										UE_LOG(LogSourceModuleGeneratorEditor, Error, TEXT("Generating basic source code failed.\n\nFail Reason: %s"), *FailReason.ToString());
+										FMessageDialog::Open(EAppMsgType::Ok, FText::FromString(FString::Printf(TEXT("Generating basic source code failed.\n\nFail Reason: %s"), *FailReason.ToString())));
+										return FReply::Handled();
+									}
+									else
+									{
+										UE_LOG(LogSourceModuleGeneratorEditor, Log, TEXT("Generating basic source code successful, created files:"), *FailReason.ToString());
+										for (const FString& CreatedFile: CreatedFiles)
+										{
+											UE_LOG(LogSourceModuleGeneratorEditor, Log, TEXT("%s"), *CreatedFile)
+										}
+										//Refresh project.
+										//FText FailLog;
+										//if(GameProjectUtils::BuildCodeProject(FPaths::GetProjectFilePath()))
+										//{
+										//	UE_LOG(LogSourceModuleGeneratorEditor, Warning, TEXT("Build project FAILED.\n\nFail Reason: %s\n\nFail Log: %s"), *FailReason.ToString(), *FailLog.ToString());
+										//	FMessageDialog::Open(EAppMsgType::Ok, FText::FromString(FString::Printf(TEXT("Build project FAILED.\n\nFail Reason: %s\n\nFail Log: %s"), *FailReason.ToString())));
+										//	return FReply::Handled();
+										//}
+									}
+								}
 							}
 						}
 						ModuleDeclarer.DescriptorFilePath = FPaths::GetProjectFilePath();
