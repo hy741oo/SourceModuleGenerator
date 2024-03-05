@@ -602,6 +602,9 @@ void FSourceModuleGeneratorEditorModule::AddingModuleDialog()
 										//Refresh project.
 										//FText FailLog;
 										//if(GameProjectUtils::BuildCodeProject(FPaths::GetProjectFilePath()))
+										//Refresh project.
+										//FText FailLog;
+										//if(GameProjectUtils::BuildCodeProject(FPaths::GetProjectFilePath()))
 										//{
 										//	UE_LOG(LogSourceModuleGeneratorEditor, Warning, TEXT("Build project FAILED.\n\nFail Reason: %s\n\nFail Log: %s"), *FailReason.ToString(), *FailLog.ToString());
 										//	FMessageDialog::Open(EAppMsgType::Ok, FText::FromString(FString::Printf(TEXT("Build project FAILED.\n\nFail Reason: %s\n\nFail Log: %s"), *FailReason.ToString())));
