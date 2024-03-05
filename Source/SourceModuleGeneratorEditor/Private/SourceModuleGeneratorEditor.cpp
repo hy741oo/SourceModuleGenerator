@@ -576,6 +576,7 @@ void FSourceModuleGeneratorEditorModule::AddingModuleDialog()
 										{
 											UE_LOG(LogSourceModuleGeneratorEditor, Log, TEXT("%s"), *CreatedFile)
 										}
+<<<<<<< HEAD
 										//Refresh and build project.
 												// This is the first time we add code to this project so compile its game DLL
 										const FString GameModuleName = FApp::GetProjectName();
@@ -599,12 +600,20 @@ void FSourceModuleGeneratorEditorModule::AddingModuleDialog()
 										FText FailLog;
 										FGameProjectGenerationModule::Get().UpdateCodeProject(FailReason, FailLog);
 										//if(!GameProjectUtils::BuildCodeProject(FPaths::GetProjectFilePath()))
+=======
+										//Refresh project.
+										//FText FailLog;
+										//if(GameProjectUtils::BuildCodeProject(FPaths::GetProjectFilePath()))
+>>>>>>> origin/main
 										//{
 										//	UE_LOG(LogSourceModuleGeneratorEditor, Warning, TEXT("Build project FAILED.\n\nFail Reason: %s\n\nFail Log: %s"), *FailReason.ToString(), *FailLog.ToString());
 										//	FMessageDialog::Open(EAppMsgType::Ok, FText::FromString(FString::Printf(TEXT("Build project FAILED.\n\nFail Reason: %s\n\nFail Log: %s"), *FailReason.ToString())));
 										//	return FReply::Handled();
 										//}
+<<<<<<< HEAD
 										return FReply::Handled();
+=======
+>>>>>>> origin/main
 									}
 								}
 							}
