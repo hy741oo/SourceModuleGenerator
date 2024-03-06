@@ -515,12 +515,12 @@ void FSourceModuleGeneratorEditorModule::AddingModuleDialog()
 					// Check whether module name is correct.
 					if (ModuleName->HasError())
 					{
-						UE_LOG(LogSourceModuleGeneratorEditor, Error, TEXT("Module name has error, Abort generating."));
+						UE_LOG(LogSourceModuleGeneratorEditor, Warning, TEXT("Module name has error, Abort generating."));
 						return FReply::Handled();
 					}
 					if (ModuleName->GetText().IsEmpty())
 					{
-						UE_LOG(LogSourceModuleGeneratorEditor, Error, TEXT("Module name is empty, Abort generating."));
+						UE_LOG(LogSourceModuleGeneratorEditor, Warning, TEXT("Module name is empty, Abort generating."));
 						ModuleName->SetError(TEXT("Module name cannot be empty."));
 						return FReply::Handled();
 					}
@@ -545,73 +545,27 @@ void FSourceModuleGeneratorEditorModule::AddingModuleDialog()
 						FText ProjectLoadFailedReason;
 						if (!ProjectDescriptor.Load(FPaths::GetProjectFilePath(), ProjectLoadFailedReason))
 						{
-							UE_LOG(LogSourceModuleGeneratorEditor, Error, TEXT("Load project file failed, reason is: %s, abort generating."), *ProjectLoadFailedReason.ToString());
+							UE_LOG(LogSourceModuleGeneratorEditor, Warning, TEXT("Load project file failed, reason is: %s, abort generating."), *ProjectLoadFailedReason.ToString());
 							return FReply::Handled();
 						}
 						else
 						{
+							// If the project has no any modules, we should create primary module before we add any new module.
 							if (ProjectDescriptor.Modules.Num() == 0)
 							{
-								EAppReturnType::Type AppReturnType = FMessageDialog::Open(EAppMsgType::YesNo, EAppReturnType::No, FText::FromString(TEXT("There is no primary game module in project.\n\nDo you want to create primary game module?\n\nNo will cancel generating new module.")));
+								EAppReturnType::Type AppReturnType = FMessageDialog::Open(EAppMsgType::YesNo, EAppReturnType::No, FText::FromString(TEXT("There is no primary game module in project.\n\nDo you want to create primary game module and new class first?\n\nYes will open add code to project dialog and close this dialog.\n\nNo will cancel generating new module.")));
 								if (AppReturnType == EAppReturnType::No)
 								{
-									UE_LOG(LogSourceModuleGeneratorEditor, Error, TEXT("There is no primary game module in the project, Abort generating."));
+									UE_LOG(LogSourceModuleGeneratorEditor, Warning, TEXT("There is no primary game module in the project. Abort generating."));
+									FMessageDialog::Open(EAppMsgType::Ok, FText::FromString(TEXT("There is no primary game module in the project. Abort generating.")));
 									return FReply::Handled();
 								}
 								else
 								{
-									UE_LOG(LogSourceModuleGeneratorEditor, Log, TEXT("Generating basic source code..."));
-									TArray<FString> CreatedFiles;
-									FText FailReason;
-									if (!GameProjectUtils::GenerateBasicSourceCode(CreatedFiles, FailReason))
-									{
-										UE_LOG(LogSourceModuleGeneratorEditor, Error, TEXT("Generating basic source code failed.\n\nFail Reason: %s"), *FailReason.ToString());
-										FMessageDialog::Open(EAppMsgType::Ok, FText::FromString(FString::Printf(TEXT("Generating basic source code failed.\n\nFail Reason: %s"), *FailReason.ToString())));
-										return FReply::Handled();
-									}
-									else
-									{
-										UE_LOG(LogSourceModuleGeneratorEditor, Log, TEXT("Generating basic source code successful, created files:"), *FailReason.ToString());
-										for (const FString& CreatedFile: CreatedFiles)
-										{
-											UE_LOG(LogSourceModuleGeneratorEditor, Log, TEXT("%s"), *CreatedFile)
-										}
-										//Refresh and build project.
-												// This is the first time we add code to this project so compile its game DLL
-										const FString GameModuleName = FApp::GetProjectName();
-										//check(ModuleInfo.ModuleName == GameModuleName);
-
-										// Because this project previously didn't have any code, the UBT target name will just be UE4Editor. Now that we've
-										// added some code, the target name will be changed to match the editor target for the new source. 
-										FString NewUBTTargetName = GameModuleName + TEXT("Editor");
-										FPlatformMisc::SetUBTTargetName(*NewUBTTargetName);
-
-										IHotReloadInterface& HotReloadSupport = FModuleManager::LoadModuleChecked<IHotReloadInterface>("HotReload");
-										if (!HotReloadSupport.RecompileModule(*GameModuleName, *GWarn, ERecompileModuleFlags::ReloadAfterRecompile | ERecompileModuleFlags::ForceCodeProject))
-										{
-										//	OutFailReason = LOCTEXT("FailedToCompileNewGameModule", "Failed to compile newly created game module.");
-										//	return EAddCodeToProjectResult::FailedToHotReload;
-										}
-
-										// Notify that we've created a brand new module
-										//FSourceCodeNavigation::AccessOnNewModuleAdded().Broadcast(*GameModuleName);
-
-										FText FailLog;
-										FGameProjectGenerationModule::Get().UpdateCodeProject(FailReason, FailLog);
-										//if(!GameProjectUtils::BuildCodeProject(FPaths::GetProjectFilePath()))
-										//Refresh project.
-										//FText FailLog;
-										//if(GameProjectUtils::BuildCodeProject(FPaths::GetProjectFilePath()))
-										//Refresh project.
-										//FText FailLog;
-										//if(GameProjectUtils::BuildCodeProject(FPaths::GetProjectFilePath()))
-										//{
-										//	UE_LOG(LogSourceModuleGeneratorEditor, Warning, TEXT("Build project FAILED.\n\nFail Reason: %s\n\nFail Log: %s"), *FailReason.ToString(), *FailLog.ToString());
-										//	FMessageDialog::Open(EAppMsgType::Ok, FText::FromString(FString::Printf(TEXT("Build project FAILED.\n\nFail Reason: %s\n\nFail Log: %s"), *FailReason.ToString())));
-										//	return FReply::Handled();
-										//}
-										return FReply::Handled();
-									}
+									UE_LOG(LogSourceModuleGeneratorEditor, Log, TEXT("There is no primary game modue in the project. Open add code to project dialog."));
+									FGameProjectGenerationModule::Get().OpenAddCodeToProjectDialog();
+									MainWindow->RequestDestroyWindow();
+									return FReply::Handled();
 								}
 							}
 						}
@@ -640,7 +594,8 @@ void FSourceModuleGeneratorEditorModule::AddingModuleDialog()
 					// Create files the module needing.
 					if (!CreateModuleFiles(ModuleDeclarer))
 					{
-						UE_LOG(LogSourceModuleGeneratorEditor, Error, TEXT("Generate module failed, Abort generating."));
+						UE_LOG(LogSourceModuleGeneratorEditor, Warning, TEXT("Create module files failed.Abort Generating."));
+						FMessageDialog::Open(EAppMsgType::Ok, FText::FromString(TEXT("Create module files failed.\n\nAbort Generating.")));
 						MainWindow->RequestDestroyWindow();
 						return FReply::Handled();
 					}
@@ -652,7 +607,8 @@ void FSourceModuleGeneratorEditorModule::AddingModuleDialog()
 						ECompilationResult::Type CompilationResult = IHotReloadModule::Get().DoHotReloadFromEditor(EHotReloadFlags::WaitForCompletion);
 						if (CompilationResult != ECompilationResult::Succeeded)
 						{
-							UE_LOG(LogSourceModuleGeneratorEditor, Error, TEXT("Compile and hot reload failed, Fail reason: %s"), ECompilationResult::ToString(CompilationResult));
+							UE_LOG(LogSourceModuleGeneratorEditor, Warning, TEXT("Compile and hot reload failed, Fail reason: %s"), ECompilationResult::ToString(CompilationResult));
+							FMessageDialog::Open(EAppMsgType::Ok, FText::FromString(FString::Printf(TEXT("Compile and hot reload failed, Fail reason: %s"), ECompilationResult::ToString(CompilationResult))));
 							return FReply::Handled();
 						}
 						UE_LOG(LogSourceModuleGeneratorEditor, Log, TEXT("COMPILE AND HOT RELOAD SUCCESSFUL."));
