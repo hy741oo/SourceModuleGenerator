@@ -3,7 +3,7 @@
 # Source Module Generator  
 
 ## Intro  
-Source Module Generator is a Unreal Engine 4 plugin that supporting a simple way to create new module in project or plugin.  
+Source Module Generator is a Unreal Engine 5.7 plugin that supporting a simple way to create new module in project or plugin.  
 
 ## Features  
 - Interactive interface dialog.  

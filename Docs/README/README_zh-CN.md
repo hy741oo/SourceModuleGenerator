@@ -3,7 +3,7 @@
 # Source Module Generator  
 
 ## 介绍
-Source Module Generator 是一个支持方便添加模块到游戏项目或插件里的UE4插件。  
+Source Module Generator 是一个支持方便添加模块到游戏项目或插件里的UE5.7插件。  
 
 ## 特性  
 - 交互界面对话框。  
