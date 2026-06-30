@@ -36,7 +36,8 @@ public class SourceModuleGenerator : ModuleRules
 			new string[]
 			{
 				"CoreUObject",
-				"Engine"
+				"Engine",
+				"Projects"
 				// ... add private dependencies that you statically link with here ...	
 			}
 			);
@@ -48,8 +49,5 @@ public class SourceModuleGenerator : ModuleRules
 				// ... add any modules that your module loads dynamically here ...
 			}
 			);
-
-		string ThirdPartyPath = Path.Combine(PluginDirectory, @"Source\ThirdParty");
-		PublicIncludePaths.Add(Path.Combine(ThirdPartyPath, @"rapidjson-1.1.0\include"));
 	}
 }

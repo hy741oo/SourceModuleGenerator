@@ -5,72 +5,64 @@
 #include "SourceModuleGenerator.h"
 #include "ProjectDescriptor.h"
 #include "PluginDescriptor.h"
-#include "rapidjson/document.h"
-#include "rapidjson/filereadstream.h"
-#include "rapidjson/filewritestream.h"
-#include "rapidjson/prettywriter.h"
 #include "HAL/FileManager.h"
-
-#include <cstdio>
+#include "Logging/StructuredLog.h"
 
 // Internal function declares.
 void DeleteGeneratedFiles(const TArray<FString>& InGeneratedFilePaths);
 
 bool CreateModuleFiles(const FModuleDeclarer& InModuleDeclarer)
 {
-	// Add module descriptor to project or plugin descriptor.
-	UE_LOG(LogSourceModuleGenerator, Log, TEXT("Adding module descriptor to descriptor file... The expected file path is %s"), *(InModuleDeclarer.DescriptorFilePath));
+	// 判断描述文件是否存在。
+	UE_LOGFMT(LogSourceModuleGenerator, Log, "Adding module descriptor to descriptor file... The expected file path is \"{Path}\"", InModuleDeclarer.DescriptorFilePath);
 	if (!(IFileManager::Get().FileExists(*(InModuleDeclarer.DescriptorFilePath))))
 	{
-		UE_LOG(LogSourceModuleGenerator, Error, TEXT("Descriptor file does not exist."));
+		UE_LOGFMT(LogSourceModuleGenerator, Error, "Descriptor file does not exist.");
 		return false;
 	}
 
-	FILE* DescriptorFileHandle = std::fopen(TCHAR_TO_UTF8(*(InModuleDeclarer.DescriptorFilePath)), "rb");
-	char ContentBuffer[65536] = { 0 };
-	rapidjson::FileReadStream DescriptorFileHandleReadStream(DescriptorFileHandle, ContentBuffer, sizeof(ContentBuffer));
-	rapidjson::Document JsonDocument;
-	JsonDocument.ParseStream(DescriptorFileHandleReadStream);
-	std::fclose(DescriptorFileHandle);
+	// 定义一个要在描述文件显示的模块信息。
+	FModuleDescriptor ModuleDescriptor;
+	ModuleDescriptor.Name = FName(InModuleDeclarer.ModuleName);
+	ModuleDescriptor.Type = InModuleDeclarer.HostType;
+	ModuleDescriptor.LoadingPhase = InModuleDeclarer.LoadingPhase;
 
-	if (!JsonDocument.IsObject())
+	// 为描述文件添加模块信息。
+	FProjectDescriptor ProjectDescriptor;
+	FPluginDescriptor PluginDescriptor;
+	FText FailReason;
+
+	// 判断当前指定的描述文件是项目的还是插件的，读取对应的描述文件内容并添加新模块信息，最后保存到描述文件。
+	if (FPaths::GetProjectFilePath() == InModuleDeclarer.DescriptorFilePath)
 	{
-		UE_LOG(LogSourceModuleGenerator, Error, TEXT("Load descriptor file failed."));
-		return false;
-	}
+		if (!ProjectDescriptor.Load(InModuleDeclarer.DescriptorFilePath, FailReason))
+		{
+			UE_LOGFMT(LogSourceModuleGenerator, Error, "Load project descriptor failed, fail reason:{Reason}.", FailReason.ToString());
+			return false;
+		}
 
-	rapidjson::Value ModuleDescriptor;
-	ModuleDescriptor.SetObject();
-	ModuleDescriptor.AddMember("Name", rapidjson::StringRef(TCHAR_TO_UTF8(*(InModuleDeclarer.ModuleName))), JsonDocument.GetAllocator());
-	ModuleDescriptor.AddMember("Type", rapidjson::StringRef(TCHAR_TO_UTF8(*(InModuleDeclarer.HostType))), JsonDocument.GetAllocator());
-	ModuleDescriptor.AddMember("LoadingPhase", rapidjson::StringRef(TCHAR_TO_UTF8(*(InModuleDeclarer.LoadingPhase))), JsonDocument.GetAllocator());
-
-	if (JsonDocument.HasMember("Modules"))
-	{
-		rapidjson::Value& ModuleList = JsonDocument["Modules"];
-		ModuleList.PushBack(ModuleDescriptor, JsonDocument.GetAllocator());
+		ProjectDescriptor.Modules.Add(MoveTemp(ModuleDescriptor));
+		if (!ProjectDescriptor.Save(InModuleDeclarer.DescriptorFilePath, FailReason))
+		{
+			UE_LOGFMT(LogSourceModuleGenerator, Error, "Save project descriptor failed, fail reason:{Reason}.", FailReason.ToString());
+			return false;
+		}
 	}
 	else
 	{
-		rapidjson::Value ModuleList;
-		ModuleList.SetArray();
-		ModuleList.PushBack(ModuleDescriptor, JsonDocument.GetAllocator());
-		JsonDocument.AddMember("Modules", ModuleList, JsonDocument.GetAllocator());
+		if (!PluginDescriptor.Load(InModuleDeclarer.DescriptorFilePath, FailReason))
+		{
+			UE_LOGFMT(LogSourceModuleGenerator, Error, "Load plugin descriptor failed, fail reason:{Reason}.", FailReason.ToString());
+			return false;
+		}
+
+		PluginDescriptor.Modules.Add(MoveTemp(ModuleDescriptor));
+		if (!PluginDescriptor.Save(InModuleDeclarer.DescriptorFilePath, FailReason))
+		{
+			UE_LOGFMT(LogSourceModuleGenerator, Error, "Save plugin descriptor failed, fail reason:{Reason}.", FailReason.ToString());
+			return false;
+		}
 	}
-
-	DescriptorFileHandle = std::fopen(TCHAR_TO_UTF8(*(InModuleDeclarer.DescriptorFilePath)), "wb");
-	rapidjson::FileWriteStream DescriptorFileWriteStream(DescriptorFileHandle, ContentBuffer, sizeof(ContentBuffer));
-
-	rapidjson::PrettyWriter<rapidjson::FileWriteStream> JsonWriter(DescriptorFileWriteStream);
-	JsonWriter.SetFormatOptions(rapidjson::PrettyFormatOptions::kFormatSingleLineArray);
-	JsonWriter.SetIndent('\t', 1);
-
-	if (!JsonDocument.Accept(JsonWriter))
-	{
-		UE_LOG(LogSourceModuleGenerator, Error, TEXT("Add module descriptor failed."));
-		return false;
-	}
-	std::fclose(DescriptorFileHandle);
 
 	// Storage temporary generated files path.
 	TArray<FString> GeneratedFilePaths;
@@ -93,10 +85,10 @@ bool CreateModuleFiles(const FModuleDeclarer& InModuleDeclarer)
 	ModuleContents.Add(TEXT("\tvirtual void ShutdownModule() override;"));
 	ModuleContents.Add(TEXT("};"));
 
-	UE_LOG(LogSourceModuleGenerator, Log, TEXT("Creating module header file... The expected file path is %s"), *(InModuleDeclarer.ModuleHeaderFilePath));
+	UE_LOGFMT(LogSourceModuleGenerator, Log, "Creating module header file... The expected file path is \"{Path}\"", InModuleDeclarer.ModuleHeaderFilePath);
 	if (!FFileHelper::SaveStringArrayToFile(ModuleContents, *(InModuleDeclarer.ModuleHeaderFilePath)))
 	{
-		UE_LOG(LogSourceModuleGenerator, Error, TEXT("Creating module header file failed."));
+		UE_LOGFMT(LogSourceModuleGenerator, Error, "Creating module header file failed.");
 		return false;
 	}
 	GeneratedFilePaths.Add(InModuleDeclarer.ModuleHeaderFilePath);
@@ -130,10 +122,10 @@ bool CreateModuleFiles(const FModuleDeclarer& InModuleDeclarer)
 		break;
 	}
 
-	UE_LOG(LogSourceModuleGenerator, Log, TEXT("Creating module source file... The expected file path is %s"), *(InModuleDeclarer.ModuleSourceFilePath));
+	UE_LOGFMT(LogSourceModuleGenerator, Log, "Creating module source file... The expected file path is \"{Path}\"", InModuleDeclarer.ModuleSourceFilePath);
 	if (!FFileHelper::SaveStringArrayToFile(ModuleContents, *(InModuleDeclarer.ModuleSourceFilePath)))
 	{
-		UE_LOG(LogSourceModuleGenerator, Error, TEXT("Creating module source file failed."));
+		UE_LOGFMT(LogSourceModuleGenerator, Error, "Creating module source file failed.");
 		::DeleteGeneratedFiles(GeneratedFilePaths);
 		return false;
 	}
@@ -170,21 +162,21 @@ bool CreateModuleFiles(const FModuleDeclarer& InModuleDeclarer)
 	ModuleContents.Add(TEXT("\t}"));
 	ModuleContents.Add(TEXT("}"));
 
-	UE_LOG(LogSourceModuleGenerator, Log, TEXT("Creating module build file... The expected file path is %s"), *(InModuleDeclarer.ModuleBuildFilePath));
+	UE_LOGFMT(LogSourceModuleGenerator, Log, "Creating module build file... The expected file path is: \"{Path}\"", InModuleDeclarer.ModuleBuildFilePath);
 	if (!FFileHelper::SaveStringArrayToFile(ModuleContents, *(InModuleDeclarer.ModuleBuildFilePath)))
 	{
-		UE_LOG(LogSourceModuleGenerator, Error, TEXT("Creating module build file failed."));
+		UE_LOGFMT(LogSourceModuleGenerator, Error, "Creating module build file failed.");
 		::DeleteGeneratedFiles(GeneratedFilePaths);
 		return false;
 	}
 
 	for (const FString& Item : InModuleDeclarer.ProjectModuleTargetTypeFilePaths)
 	{
-		UE_LOG(LogSourceModuleGenerator, Log, TEXT("Adding module name to project target file %s... The expected file path is %s"), *Item.Left(Item.Find(TEXT("."))), *Item);
+		UE_LOGFMT(LogSourceModuleGenerator, Log, "Adding module name to project target file: \"{ItemLeft}\"... The expected file path is: \"{Item}\"", Item.Left(Item.Find(TEXT("."))), Item);
 		TArray<FString> Result;
 		if (!FFileHelper::LoadFileToStringArray(Result, *Item))
 		{
-			UE_LOG(LogSourceModuleGenerator, Error, TEXT("Load project target file failed."));
+			UE_LOGFMT(LogSourceModuleGenerator, Error, "Load project target file failed.");
 			::DeleteGeneratedFiles(GeneratedFilePaths);
 			return false;
 		}
@@ -196,7 +188,7 @@ bool CreateModuleFiles(const FModuleDeclarer& InModuleDeclarer)
 				FString LeftString, RightString;
 				if (!Line.Split(TEXT("\""), &LeftString, &RightString, ESearchCase::IgnoreCase, ESearchDir::FromEnd))
 				{
-					UE_LOG(LogSourceModuleGenerator, Error, TEXT("Split string failed."));
+					UE_LOGFMT(LogSourceModuleGenerator, Error, "Split string failed.");
 					::DeleteGeneratedFiles(GeneratedFilePaths);
 					return false;
 				}
@@ -224,14 +216,14 @@ bool CreateModuleFiles(const FModuleDeclarer& InModuleDeclarer)
 			}
 			if (Index == Result.Num())
 			{
-				UE_LOG(LogSourceModuleGenerator, Error, TEXT("Find key string \"base(Target)\" failed."));
+				UE_LOGFMT(LogSourceModuleGenerator, Error, "Find key string \"base(Target)\" failed.");
 				::DeleteGeneratedFiles(GeneratedFilePaths);
 				return false;
 			}
 		}
 		if (!FFileHelper::SaveStringArrayToFile(Result, *Item))
 		{
-			UE_LOG(LogSourceModuleGenerator, Error, TEXT("Save file failed."));
+			UE_LOGFMT(LogSourceModuleGenerator, Error, "Save file failed.");
 			::DeleteGeneratedFiles(GeneratedFilePaths);
 			return false;
 		}
@@ -242,20 +234,20 @@ bool CreateModuleFiles(const FModuleDeclarer& InModuleDeclarer)
 
 void DeleteGeneratedFiles(const TArray<FString>& InGeneratedFilePaths)
 {
-	UE_LOG(LogSourceModuleGenerator, Log, TEXT("Deleting generated files..."));
+	UE_LOGFMT(LogSourceModuleGenerator, Log, "Deleting generated files...");
 	IFileManager& FileManager = IFileManager::Get();
 	for (const FString& GeneratedFilePath : InGeneratedFilePaths)
 	{
 		if (!FileManager.Delete(*GeneratedFilePath, true, true, false))
 		{
-			UE_LOG(LogSourceModuleGenerator, Warning, TEXT("Deleting temporary generated file path does not success."));
+			UE_LOGFMT(LogSourceModuleGenerator, Warning, "Deleting temporary generated file path does not success.");
 		}
-		UE_LOG(LogSourceModuleGenerator, Log, TEXT("Deleted file %s"), *GeneratedFilePath);
+		UE_LOGFMT(LogSourceModuleGenerator, Log, "Deleted file %s", GeneratedFilePath);
 		FString DirectoryPath = FPaths::GetPath(GeneratedFilePath);
 		if (FileManager.DirectoryExists(*DirectoryPath))
 		{
 			FileManager.DeleteDirectory(*DirectoryPath);
-			UE_LOG(LogSourceModuleGenerator, Log, TEXT("Deleted directory %s"), *DirectoryPath);
+			UE_LOGFMT(LogSourceModuleGenerator, Log, "Deleted directory: \"{DirPath}\"", DirectoryPath);
 		}
 	}
 }

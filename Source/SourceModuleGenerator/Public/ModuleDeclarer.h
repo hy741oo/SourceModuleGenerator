@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "ModuleDescriptor.h"
 
 namespace EModuleImplementType
 {
@@ -42,10 +43,10 @@ struct FModuleDeclarer
 	FString DescriptorFilePath;
 
 	// Environment that can load this module, Runtime, Editor etc.
-	FString HostType;
+	EHostType::Type HostType = EHostType::Runtime;
 
 	// Phase at which this module should be loaded during startup.
-	FString LoadingPhase;
+	ELoadingPhase::Type LoadingPhase = ELoadingPhase::Default;
 
 	EModuleImplementType::Type ModuleImplementType = EModuleImplementType::NormalModule;
 

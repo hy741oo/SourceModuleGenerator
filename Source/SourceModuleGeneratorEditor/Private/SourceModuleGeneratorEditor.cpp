@@ -1,4 +1,4 @@
-﻿// Copyright 2022 U.N.Owen, All Rights Reserved.
+// Copyright 2022 U.N.Owen, All Rights Reserved.
 
 #include "SourceModuleGeneratorEditor.h"
 #include "Styling/SlateStyle.h"
@@ -23,7 +23,8 @@
 #include "Misc/MessageDialog.h"
 #include "HAL/FileManager.h"
 #include "GameProjectUtils.h"
-#include "IHotReload.h"
+#include "ILiveCodingModule.h"
+#include "DesktopPlatformModule.h"
 
 DEFINE_LOG_CATEGORY(LogSourceModuleGeneratorEditor)
 
@@ -515,12 +516,12 @@ void FSourceModuleGeneratorEditorModule::AddingModuleDialog()
 					// Check whether module name is correct.
 					if (ModuleName->HasError())
 					{
-						UE_LOG(LogSourceModuleGeneratorEditor, Warning, TEXT("Module name has error, Abort generating."));
+						UE_LOGFMT(LogSourceModuleGeneratorEditor, Warning, "Module name has error, Abort generating.");
 						return FReply::Handled();
 					}
 					if (ModuleName->GetText().IsEmpty())
 					{
-						UE_LOG(LogSourceModuleGeneratorEditor, Warning, TEXT("Module name is empty, Abort generating."));
+						UE_LOGFMT(LogSourceModuleGeneratorEditor, Warning, "Module name is empty, Abort generating.");
 						ModuleName->SetError(TEXT("Module name cannot be empty."));
 						return FReply::Handled();
 					}
@@ -536,8 +537,8 @@ void FSourceModuleGeneratorEditorModule::AddingModuleDialog()
 						ModuleDeclarer.CopyrightMessage = CopyrightMessage->GetText().ToString();
 					}
 					ModuleDeclarer.ModuleName = ModuleName->GetText().ToString();
-					ModuleDeclarer.HostType = CurrentHostType->GetText().ToString();
-					ModuleDeclarer.LoadingPhase = CurrentLoadingPhase->GetText().ToString();
+					ModuleDeclarer.HostType = EHostType::FromString(*CurrentHostType->GetText().ToString());
+					ModuleDeclarer.LoadingPhase = ELoadingPhase::FromString(*CurrentLoadingPhase->GetText().ToString());
 					ModuleDeclarer.ModuleImplementType = EModuleImplementType::FromString(*CurrentModuleImplementType->GetText().ToString());
 					if (IsItPluginModule->GetCheckedState() != ECheckBoxState::Checked)
 					{
@@ -545,7 +546,7 @@ void FSourceModuleGeneratorEditorModule::AddingModuleDialog()
 						FText ProjectLoadFailedReason;
 						if (!ProjectDescriptor.Load(FPaths::GetProjectFilePath(), ProjectLoadFailedReason))
 						{
-							UE_LOG(LogSourceModuleGeneratorEditor, Warning, TEXT("Load project file failed, reason is: %s, abort generating."), *ProjectLoadFailedReason.ToString());
+							UE_LOGFMT(LogSourceModuleGeneratorEditor, Warning, "Load project file failed, reason is: \"{ProjectLoadFailedReason}\", abort generating.", ProjectLoadFailedReason.ToString());
 							return FReply::Handled();
 						}
 						else
@@ -556,13 +557,13 @@ void FSourceModuleGeneratorEditorModule::AddingModuleDialog()
 								EAppReturnType::Type AppReturnType = FMessageDialog::Open(EAppMsgType::YesNo, EAppReturnType::No, FText::FromString(TEXT("There is no primary game module in project.\n\nDo you want to create primary game module and new class first?\n\nYes will open add code to project dialog and close this dialog.\n\nNo will cancel generating new module.")));
 								if (AppReturnType == EAppReturnType::No)
 								{
-									UE_LOG(LogSourceModuleGeneratorEditor, Warning, TEXT("There is no primary game module in the project. Abort generating."));
+									UE_LOGFMT(LogSourceModuleGeneratorEditor, Warning, "There is no primary game module in the project. Abort generating.");
 									FMessageDialog::Open(EAppMsgType::Ok, FText::FromString(TEXT("There is no primary game module in the project. Abort generating.")));
 									return FReply::Handled();
 								}
 								else
 								{
-									UE_LOG(LogSourceModuleGeneratorEditor, Log, TEXT("There is no primary game modue in the project. Open add code to project dialog."));
+									UE_LOGFMT(LogSourceModuleGeneratorEditor, Log, "There is no primary game modue in the project. Open add code to project dialog.");
 									FGameProjectGenerationModule::Get().OpenAddCodeToProjectDialog();
 									MainWindow->RequestDestroyWindow();
 									return FReply::Handled();
@@ -594,60 +595,40 @@ void FSourceModuleGeneratorEditorModule::AddingModuleDialog()
 					// Create files the module needing.
 					if (!CreateModuleFiles(ModuleDeclarer))
 					{
-						UE_LOG(LogSourceModuleGeneratorEditor, Warning, TEXT("Create module files failed.Abort Generating."));
+						UE_LOGFMT(LogSourceModuleGeneratorEditor, Warning, "Create module files failed.Abort Generating.");
 						FMessageDialog::Open(EAppMsgType::Ok, FText::FromString(TEXT("Create module files failed.\n\nAbort Generating.")));
 						MainWindow->RequestDestroyWindow();
 						return FReply::Handled();
 					}
 					else
 					{
-						UE_LOG(LogSourceModuleGeneratorEditor, Log, TEXT("Generate module files successful, compiling code..."));
+						UE_LOGFMT(LogSourceModuleGeneratorEditor, Log, "Generate module files successful, compiling code...");
 
-						// Compiling and hot reloading project.
-						ECompilationResult::Type CompilationResult = IHotReloadModule::Get().DoHotReloadFromEditor(EHotReloadFlags::WaitForCompletion);
-						if (CompilationResult != ECompilationResult::Succeeded)
+						// Compiling project.
+						ILiveCodingModule* LiveCoding = FModuleManager::GetModulePtr<ILiveCodingModule>(LIVE_CODING_MODULE_NAME);
+						ELiveCodingCompileResult CompileResult = ELiveCodingCompileResult::Failure;
+						if (!LiveCoding->Compile(ELiveCodingCompileFlags::WaitForCompletion, &CompileResult))
 						{
-							UE_LOG(LogSourceModuleGeneratorEditor, Warning, TEXT("Compile and hot reload failed, Fail reason: %s"), ECompilationResult::ToString(CompilationResult));
-							FMessageDialog::Open(EAppMsgType::Ok, FText::FromString(FString::Printf(TEXT("Compile and hot reload failed, Fail reason: %s"), ECompilationResult::ToString(CompilationResult))));
+							UE_LOGFMT(LogSourceModuleGeneratorEditor, Warning, "Live coding compile failed.");
+							FMessageDialog::Open(EAppMsgType::Ok, FText::FromString(FString::Printf(TEXT("Live coding compile failed."))));
 							return FReply::Handled();
 						}
-						UE_LOG(LogSourceModuleGeneratorEditor, Log, TEXT("COMPILE AND HOT RELOAD SUCCESSFUL."));
+						UE_LOGFMT(LogSourceModuleGeneratorEditor, Log, "LIVE CODING COMPILE SUCCESSFUL.");
 
-						// Add binary directory that contains the module to module manager if it is a plugin module.
-						UE_LOG(LogSourceModuleGeneratorEditor, Log, TEXT("Add binary directory to module manager..."));
-						if (IsItPluginModule->GetCheckedState() == ECheckBoxState::Checked)
+						// 生成Visual Studio Project Files。
+						FText FailReason, FailLog;
+						if(!FGameProjectGenerationModule::Get().UpdateCodeProject(FailReason, FailLog))
 						{
-							FModuleManager::Get().AddBinariesDirectory(*FPaths::Combine(SelectedPlugin->GetSelectedItem()->GetBaseDir(), TEXT("Binaries")), true);
-						}
-						UE_LOG(LogSourceModuleGeneratorEditor, Log, TEXT("Add binary directory to module manager done."));
-
-						// Load new module.
-						UE_LOG(LogSourceModuleGeneratorEditor, Log, TEXT("Loading generated module..."));
-						EModuleLoadResult ModuleLoadResult;
-						FModuleManager::Get().LoadModuleWithFailureReason(FName(*ModuleDeclarer.ModuleName), ModuleLoadResult);
-						if (ModuleLoadResult == EModuleLoadResult::Success)
-						{
-							// Refresh project.
-							FText FailReason, FailLog;
-							if(!FGameProjectGenerationModule::Get().UpdateCodeProject(FailReason, FailLog))
-							{
-								UE_LOG(LogSourceModuleGeneratorEditor, Warning, TEXT("Refresh project FAILED. Fail Reason: %s\nFail Log: %s"), *FailReason.ToString(), *FailLog.ToString());
-							}
-
-							UE_LOG(LogSourceModuleGeneratorEditor, Log, TEXT("Loading generated module DONE. Generate source module END."));
-							FMessageDialog::Open(EAppMsgType::Ok, FText::FromString(TEXT("Generate new module successful.")));
-							MainWindow->RequestDestroyWindow();
-							return FReply::Handled();
-						}
-						else
-						{
-							UE_LOG(LogSourceModuleGeneratorEditor, Warning, TEXT("Loading generated module FAILED, Please restart project to load module correctly."))
-							UE_LOG(LogSourceModuleGeneratorEditor, Warning, TEXT("Failure reason: %d"), (int)ModuleLoadResult);
-							FMessageDialog::Open(EAppMsgType::Ok, FText::FromString(TEXT("Loading generated module FAILED, Please restart project to load module correctly.")));
-							MainWindow->RequestDestroyWindow();
+							UE_LOGFMT(LogSourceModuleGeneratorEditor, Warning, "Refresh project FAILED. Fail Reason: \"{FailReason}\"\nFail Log: \"{FailLog}\"", FailReason.ToString(), FailLog.ToString());
+							FMessageDialog::Open(EAppMsgType::Ok, FText::FromString(FString::Printf(TEXT("Refresh project FAILED. Fail Reason: %s\nFail Log: %s"), *FailReason.ToString(), *FailLog.ToString())));
 							return FReply::Handled();
 						}
 
+						// 生成模块成功。
+						UE_LOGFMT(LogSourceModuleGeneratorEditor, Log, "Generate source module done, SUCCESSFUL, please restart your project.");
+						FMessageDialog::Open(EAppMsgCategory::Success, EAppMsgType::Ok, FText::FromString(TEXT("Generate source module done, SUCCESSFUL, please restart your project.")));
+						MainWindow->RequestDestroyWindow();
+						return FReply::Handled();
 					}
 				}
 			)
@@ -664,7 +645,7 @@ void FSourceModuleGeneratorEditorModule::AddingModuleDialog()
 	}
 	else
 	{
-		UE_LOG(LogSourceModuleGeneratorEditor, Error, TEXT("Generate main window failed."));
+		UE_LOGFMT(LogSourceModuleGeneratorEditor, Error, "Generate main window failed.");
 	}
 }
 
