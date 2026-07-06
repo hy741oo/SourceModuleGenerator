@@ -242,7 +242,7 @@ void DeleteGeneratedFiles(const TArray<FString>& InGeneratedFilePaths)
 		{
 			UE_LOGFMT(LogSourceModuleGenerator, Warning, "Deleting temporary generated file path does not success.");
 		}
-		UE_LOGFMT(LogSourceModuleGenerator, Log, "Deleted file %s", GeneratedFilePath);
+		UE_LOGFMT(LogSourceModuleGenerator, Log, "Deleted file: \"{GeneratedFilePath}\"", GeneratedFilePath);
 		FString DirectoryPath = FPaths::GetPath(GeneratedFilePath);
 		if (FileManager.DirectoryExists(*DirectoryPath))
 		{
